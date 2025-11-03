@@ -16,6 +16,15 @@ on:
         required: false
         default: 'main'
         type: string
+      environment:
+        description: 'Environment to deploy (dev, hml, prd)'
+        required: false
+        default: 'dev'
+        type: choice
+        options:
+          - dev
+          - hml
+          - prd
 
 jobs:
   build-and-deploy:
@@ -35,17 +44,18 @@ jobs:
       dockerfile-branch: ${{ github.event.inputs.dockerfile_branch || 'main' }}
       
       # Modules Docker à builder
+      # Note: La configuration dépend de l'environnement (conf-dev, conf-hml, conf-prd)
       docker-modules: |
         [
           {
             "name": "task-api",
             "artifact": "com.larbotech:task-api:jar",
-            "config": "com.larbotech:task-api:zip:distribution"
+            "config": "com.larbotech:task-api:zip:conf-${{ github.event.inputs.environment || 'dev' }}"
           },
           {
             "name": "task-batch",
             "artifact": "com.larbotech:task-batch:jar",
-            "config": "com.larbotech:task-batch:zip:distribution"
+            "config": "com.larbotech:task-batch:zip:conf-${{ github.event.inputs.environment || 'dev' }}"
           }
         ]
       

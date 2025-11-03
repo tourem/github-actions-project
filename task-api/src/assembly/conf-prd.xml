@@ -1,0 +1,22 @@
+<assembly xmlns="http://maven.apache.org/ASSEMBLY/2.1.0"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://maven.apache.org/ASSEMBLY/2.1.0 http://maven.apache.org/xsd/assembly-2.1.0.xsd">
+    <id>conf-prd</id>
+    <formats>
+        <format>zip</format>
+    </formats>
+    <includeBaseDirectory>true</includeBaseDirectory>
+    <baseDirectory>task-api-conf-prd</baseDirectory>
+
+    <fileSets>
+        <!-- Inclure les fichiers Vault pour PRD -->
+        <fileSet>
+            <directory>src/main/vault</directory>
+            <outputDirectory>vault</outputDirectory>
+            <includes>
+                <include>vault-prd.yml</include>
+            </includes>
+        </fileSet>
+    </fileSets>
+</assembly>
+

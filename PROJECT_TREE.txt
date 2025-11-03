@@ -1,0 +1,122 @@
+github-actions-project/
+│
+├── 📄 Configuration Maven
+│   ├── pom.xml                          # POM parent avec distributionManagement
+│   ├── task-api/pom.xml                 # Module API avec build-helper-plugin
+│   └── task-batch/pom.xml               # Module Batch avec build-helper-plugin
+│
+├── 🔄 GitHub Actions
+│   └── .github/
+│       ├── workflows/
+│       │   ├── ci.yml                   # Workflow CI/CD principal
+│       │   └── settings.xml             # Configuration Maven pour authentification
+│       └── README.md                    # Documentation .github
+│
+├── 📚 Documentation
+│   ├── README.md                        # Documentation principale (avec badges CI/CD)
+│   ├── QUICKSTART.md                    # Guide démarrage rapide
+│   ├── DEPLOYMENT.md                    # Guide déploiement production
+│   ├── API_EXAMPLES.md                  # Exemples utilisation API
+│   ├── PROJECT_STRUCTURE.md             # Structure détaillée
+│   ├── SUMMARY.md                       # Résumé du projet
+│   ├── COMMANDS.md                      # Commandes utiles
+│   ├── FILES_CREATED.md                 # Liste des fichiers créés
+│   ├── GITHUB_ACTIONS.md                # Guide complet GitHub Actions ⭐
+│   ├── GIT_SETUP.md                     # Configuration Git et push ⭐
+│   ├── CHANGELOG_GITHUB_ACTIONS.md      # Changelog CI/CD ⭐
+│   └── GITHUB_ACTIONS_SUMMARY.md        # Résumé final CI/CD ⭐
+│
+├── 🌐 Module task-api (Port 8080)
+│   ├── src/
+│   │   ├── main/
+│   │   │   ├── java/com/larbotech/taskapi/
+│   │   │   │   ├── TaskApiApplication.java
+│   │   │   │   ├── controller/TaskController.java
+│   │   │   │   ├── service/TaskService.java
+│   │   │   │   ├── repository/TaskRepository.java
+│   │   │   │   ├── model/Task.java
+│   │   │   │   └── dto/TaskRequest.java
+│   │   │   ├── resources/
+│   │   │   │   ├── application.yml
+│   │   │   │   └── application-prod.yml
+│   │   │   ├── scripts/
+│   │   │   │   ├── start.sh
+│   │   │   │   ├── stop.sh
+│   │   │   │   └── start.bat
+│   │   │   └── assembly/
+│   │   │       └── distribution.xml
+│   │   └── test/
+│   ├── pom.xml
+│   └── README.md
+│
+├── 🔄 Module task-batch (Port 8081)
+│   ├── src/
+│   │   ├── main/
+│   │   │   ├── java/com/larbotech/taskbatch/
+│   │   │   │   ├── TaskBatchApplication.java
+│   │   │   │   ├── scheduler/TaskCreationScheduler.java
+│   │   │   │   ├── service/
+│   │   │   │   │   ├── TaskApiClient.java
+│   │   │   │   │   └── BatchExecutionService.java
+│   │   │   │   ├── repository/BatchExecutionRepository.java
+│   │   │   │   ├── model/BatchExecution.java
+│   │   │   │   ├── dto/
+│   │   │   │   │   ├── TaskRequest.java
+│   │   │   │   │   └── TaskResponse.java
+│   │   │   │   └── config/RestTemplateConfig.java
+│   │   │   ├── resources/
+│   │   │   │   ├── application.yml
+│   │   │   │   └── application-prod.yml
+│   │   │   ├── scripts/
+│   │   │   │   ├── start.sh
+│   │   │   │   ├── stop.sh
+│   │   │   │   └── start.bat
+│   │   │   └── assembly/
+│   │   │       └── distribution.xml
+│   │   └── test/
+│   ├── pom.xml
+│   └── README.md
+│
+├── 📦 Artifacts Générés (après build)
+│   ├── task-api/target/
+│   │   ├── task-api.jar                 # JAR exécutable (~48 MB)
+│   │   └── task-api-1.0-SNAPSHOT.zip    # Distribution (~41 MB)
+│   └── task-batch/target/
+│       ├── task-batch.jar               # JAR exécutable (~47 MB)
+│       └── task-batch-1.0-SNAPSHOT.zip  # Distribution (~40 MB)
+│
+├── ☁️ GitHub Packages (après push)
+│   ├── com.larbotech:task-api:1.0-SNAPSHOT
+│   ├── com.larbotech:task-api:1.0-SNAPSHOT:zip:distribution
+│   ├── com.larbotech:task-batch:1.0-SNAPSHOT
+│   └── com.larbotech:task-batch:1.0-SNAPSHOT:zip:distribution
+│
+└── 🔧 Configuration
+    ├── .gitignore                       # Fichiers à ignorer
+    └── src/main/java/com/larbotech/App.java
+
+📊 Statistiques du Projet
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Fichiers Java          : 15 classes
+Fichiers Configuration : 8 fichiers (YAML + XML)
+Scripts                : 6 scripts (sh + bat)
+Documentation          : 13 fichiers Markdown
+GitHub Actions         : 2 fichiers (workflow + settings)
+
+Total                  : ~45 fichiers
+Lignes de code         : ~4000 lignes
+
+🎯 Fonctionnalités
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ API REST (3 endpoints)
+✅ Batch planifié (cron 30 min)
+✅ Base de données H2
+✅ Packaging ZIP
+✅ Scripts multi-plateformes
+✅ CI/CD GitHub Actions
+✅ Publication GitHub Packages
+✅ Documentation complète
+
+🚀 Prêt pour le déploiement !

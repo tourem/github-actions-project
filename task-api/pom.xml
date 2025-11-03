@@ -48,21 +48,70 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-assembly-plugin</artifactId>
-                <configuration>
-                    <descriptors>
-                        <descriptor>src/assembly/distribution.xml</descriptor>
-                    </descriptors>
-                    <finalName>task-api-${project.version}</finalName>
-                    <appendAssemblyId>false</appendAssemblyId>
-                    <attach>true</attach>
-                </configuration>
                 <executions>
+                    <!-- Assembly pour la distribution complète -->
                     <execution>
-                        <id>make-assembly</id>
+                        <id>make-distribution</id>
                         <phase>package</phase>
                         <goals>
                             <goal>single</goal>
                         </goals>
+                        <configuration>
+                            <descriptors>
+                                <descriptor>src/assembly/distribution.xml</descriptor>
+                            </descriptors>
+                            <finalName>task-api-${project.version}</finalName>
+                            <appendAssemblyId>false</appendAssemblyId>
+                            <attach>true</attach>
+                        </configuration>
+                    </execution>
+                    <!-- Assembly pour la configuration DEV -->
+                    <execution>
+                        <id>make-conf-dev</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                        <configuration>
+                            <descriptors>
+                                <descriptor>src/assembly/conf-dev.xml</descriptor>
+                            </descriptors>
+                            <finalName>task-api-${project.version}</finalName>
+                            <appendAssemblyId>true</appendAssemblyId>
+                            <attach>true</attach>
+                        </configuration>
+                    </execution>
+                    <!-- Assembly pour la configuration HML -->
+                    <execution>
+                        <id>make-conf-hml</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                        <configuration>
+                            <descriptors>
+                                <descriptor>src/assembly/conf-hml.xml</descriptor>
+                            </descriptors>
+                            <finalName>task-api-${project.version}</finalName>
+                            <appendAssemblyId>true</appendAssemblyId>
+                            <attach>true</attach>
+                        </configuration>
+                    </execution>
+                    <!-- Assembly pour la configuration PRD -->
+                    <execution>
+                        <id>make-conf-prd</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                        <configuration>
+                            <descriptors>
+                                <descriptor>src/assembly/conf-prd.xml</descriptor>
+                            </descriptors>
+                            <finalName>task-api-${project.version}</finalName>
+                            <appendAssemblyId>true</appendAssemblyId>
+                            <attach>true</attach>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>
@@ -79,10 +128,29 @@
                         </goals>
                         <configuration>
                             <artifacts>
+                                <!-- Distribution complète -->
                                 <artifact>
                                     <file>${project.build.directory}/task-api-${project.version}.zip</file>
                                     <type>zip</type>
                                     <classifier>distribution</classifier>
+                                </artifact>
+                                <!-- Configuration DEV -->
+                                <artifact>
+                                    <file>${project.build.directory}/task-api-${project.version}-conf-dev.zip</file>
+                                    <type>zip</type>
+                                    <classifier>conf-dev</classifier>
+                                </artifact>
+                                <!-- Configuration HML -->
+                                <artifact>
+                                    <file>${project.build.directory}/task-api-${project.version}-conf-hml.zip</file>
+                                    <type>zip</type>
+                                    <classifier>conf-hml</classifier>
+                                </artifact>
+                                <!-- Configuration PRD -->
+                                <artifact>
+                                    <file>${project.build.directory}/task-api-${project.version}-conf-prd.zip</file>
+                                    <type>zip</type>
+                                    <classifier>conf-prd</classifier>
                                 </artifact>
                             </artifacts>
                         </configuration>
