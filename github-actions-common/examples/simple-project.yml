@@ -1,0 +1,61 @@
+# Exemple : Application Simple (1 Module)
+#
+# Contexte :
+# - Application Spring Boot avec un seul module
+# - Java 17
+# - Un seul service backend
+#
+# Structure du projet :
+# my-project/
+# ├── pom.xml
+# ├── src/
+# └── .github/workflows/ci.yml
+
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
+
+jobs:
+  build-and-deploy:
+    name: Build and Deploy
+    uses: tourem/github-actions-common/.github/workflows/maven-docker-build.yml@main
+    with:
+      # Configuration Maven
+      java-version: '17'
+      maven-version: '3.9'
+      maven-pom: 'pom.xml'
+      
+      # Configuration Dockerfile
+      dockerfile-repo: 'tourem/docker-file-common'
+      dockerfile-branch: 'main'
+      
+      # Module unique
+      docker-modules: |
+        [
+          {
+            "name": "my-app",
+            "artifact": "com.example:my-app:jar",
+            "config": "com.example:my-app:zip:conf"
+          }
+        ]
+      
+      # Options
+      skip-tests: false
+      docker-build-enabled: true
+    
+    secrets: inherit
+
+# Résultat :
+# - Build Maven de my-app
+# - Tests exécutés
+# - Publication vers GitHub Packages
+# - Image Docker : ghcr.io/{owner}/{repo}/my-app:latest
+

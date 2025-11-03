@@ -1,0 +1,253 @@
+name: Maven Docker Build - Reusable Workflow
+
+on:
+  workflow_call:
+    inputs:
+      # Configuration Maven
+      java-version:
+        description: 'Java version (e.g., 17, 21)'
+        required: true
+        type: string
+      
+      maven-version:
+        description: 'Maven version (e.g., 3.9)'
+        required: false
+        type: string
+        default: '3.9'
+      
+      maven-pom:
+        description: 'Path to pom.xml'
+        required: false
+        type: string
+        default: 'pom.xml'
+      
+      # Configuration Dockerfile
+      dockerfile-repo:
+        description: 'Repository containing Dockerfile (e.g., owner/repo)'
+        required: true
+        type: string
+      
+      dockerfile-branch:
+        description: 'Branch of Dockerfile repository'
+        required: false
+        type: string
+        default: 'main'
+      
+      # Configuration Docker Builds
+      docker-modules:
+        description: 'JSON array of modules to build (name, artifact, config)'
+        required: true
+        type: string
+      
+      # Options
+      skip-tests:
+        description: 'Skip Maven tests'
+        required: false
+        type: boolean
+        default: false
+      
+      docker-build-enabled:
+        description: 'Enable Docker build and push'
+        required: false
+        type: boolean
+        default: true
+      
+      maven-registry:
+        description: 'Maven registry URL (auto-detected if not provided)'
+        required: false
+        type: string
+        default: ''
+      
+      docker-registry:
+        description: 'Docker registry URL (auto-detected if not provided)'
+        required: false
+        type: string
+        default: ''
+
+    outputs:
+      version:
+        description: 'Maven project version'
+        value: ${{ jobs.build-and-publish.outputs.version }}
+      
+      docker-images:
+        description: 'List of Docker images built'
+        value: ${{ jobs.build-docker-images.outputs.images }}
+
+jobs:
+  build-and-publish:
+    name: Build and Publish Maven Artifacts
+    runs-on: ubuntu-latest
+    
+    outputs:
+      version: ${{ steps.get-version.outputs.version }}
+    
+    permissions:
+      contents: read
+      packages: write
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ inputs.java-version }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ inputs.java-version }}
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Get Maven version
+        id: get-version
+        run: |
+          VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout -f ${{ inputs.maven-pom }})
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "📦 Maven version: $VERSION"
+
+      - name: Configure Maven registry
+        id: maven-registry
+        run: |
+          if [ -n "${{ inputs.maven-registry }}" ]; then
+            REGISTRY="${{ inputs.maven-registry }}"
+          else
+            REGISTRY="https://maven.pkg.github.com/${{ github.repository }}"
+          fi
+          echo "url=$REGISTRY" >> $GITHUB_OUTPUT
+          echo "📦 Maven registry: $REGISTRY"
+
+      - name: Build with Maven
+        run: |
+          if [ "${{ inputs.skip-tests }}" == "true" ]; then
+            mvn -B clean package -DskipTests -f ${{ inputs.maven-pom }}
+          else
+            mvn -B clean package -f ${{ inputs.maven-pom }}
+          fi
+
+      - name: Publish to Maven registry
+        run: |
+          mvn -B deploy -DskipTests -f ${{ inputs.maven-pom }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload artifacts
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: maven-artifacts
+          path: |
+            **/target/*.jar
+            **/target/*.zip
+          retention-days: 7
+
+  build-docker-images:
+    name: Build and Push Docker Images
+    needs: build-and-publish
+    if: inputs.docker-build-enabled && (github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop') || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    
+    outputs:
+      images: ${{ steps.image-list.outputs.images }}
+    
+    permissions:
+      contents: read
+      packages: write
+    
+    strategy:
+      matrix:
+        module: ${{ fromJson(inputs.docker-modules) }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Checkout Dockerfile repository
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.dockerfile-repo }}
+          ref: ${{ inputs.dockerfile-branch }}
+          path: dockerfile-repo
+
+      - name: Display configuration
+        run: |
+          echo "📦 Module: ${{ matrix.module.name }}"
+          echo "📦 Artifact: ${{ matrix.module.artifact }}"
+          echo "📦 Config: ${{ matrix.module.config }}"
+          echo "📦 Dockerfile repo: ${{ inputs.dockerfile-repo }}@${{ inputs.dockerfile-branch }}"
+          echo "📦 Version: ${{ needs.build-and-publish.outputs.version }}"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Configure Docker registry
+        id: docker-registry
+        run: |
+          if [ -n "${{ inputs.docker-registry }}" ]; then
+            REGISTRY="${{ inputs.docker-registry }}"
+          else
+            REGISTRY="ghcr.io"
+          fi
+          echo "url=$REGISTRY" >> $GITHUB_OUTPUT
+          echo "🐳 Docker registry: $REGISTRY"
+
+      - name: Log in to Docker Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ steps.docker-registry.outputs.url }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ steps.docker-registry.outputs.url }}/${{ github.repository }}/${{ matrix.module.name }}
+          tags: |
+            type=ref,event=branch
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=${{ needs.build-and-publish.outputs.version }}
+
+      - name: Build artifact reference
+        id: artifact-ref
+        run: |
+          ARTIFACT="${{ matrix.module.artifact }}:${{ needs.build-and-publish.outputs.version }}"
+          CONFIG="${{ matrix.module.config }}:${{ needs.build-and-publish.outputs.version }}"
+          echo "artifact=$ARTIFACT" >> $GITHUB_OUTPUT
+          echo "config=$CONFIG" >> $GITHUB_OUTPUT
+          echo "📦 Artifact reference: $ARTIFACT"
+          echo "📦 Config reference: $CONFIG"
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./dockerfile-repo/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            GITHUB_USER=${{ github.repository_owner }}
+            GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
+            APP_LOCATION=${{ steps.artifact-ref.outputs.artifact }}
+            CONF_LOCATION=${{ steps.artifact-ref.outputs.config }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Generate image summary
+        run: |
+          echo "## 🐳 Docker Image: ${{ matrix.module.name }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Tags:**" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "${{ steps.meta.outputs.tags }}" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Build Args:**" >> $GITHUB_STEP_SUMMARY
+          echo "- APP_LOCATION: \`${{ steps.artifact-ref.outputs.artifact }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- CONF_LOCATION: \`${{ steps.artifact-ref.outputs.config }}\`" >> $GITHUB_STEP_SUMMARY
+
+      - name: Collect image list
+        id: image-list
+        run: |
+          IMAGE="${{ steps.docker-registry.outputs.url }}/${{ github.repository }}/${{ matrix.module.name }}:${{ needs.build-and-publish.outputs.version }}"
+          echo "images=$IMAGE" >> $GITHUB_OUTPUT
+
