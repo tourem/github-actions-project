@@ -46,4 +46,4 @@ logs/
 ### Maven ###
 .mvn/
 mvnw
-mvnw.cmd
+mvnw.cmd.idea/AugmentWebviewStateStore.xml
