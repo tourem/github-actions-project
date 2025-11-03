@@ -32,7 +32,7 @@ RUN set -e && \
     chmod +x /build/app/app.jar && \
     echo "✅ Application téléchargée : ${FILENAME}"
 
-# Téléchargement et extraction de la configuration ZIP depuis GitHub Packages Maven
+# Téléchargement et extraction de la configuration ZIP depuis GitHub Packages Maven (optionnel)
 RUN set -e && \
     echo "📦 Parsing CONF_LOCATION: ${CONF_LOCATION}" && \
     GROUP_ID=$(echo "${CONF_LOCATION}" | cut -d':' -f1) && \
@@ -43,11 +43,14 @@ RUN set -e && \
     BASE_URL="https://maven.pkg.github.com/${GITHUB_USER}/github-actions-project" && \
     FULL_URL="${BASE_URL}/${GROUP_PATH}/${ARTIFACT_ID}/${VERSION}/${FILENAME}" && \
     echo "📦 Téléchargement de ${FULL_URL}" && \
-    curl -L -u "${GITHUB_USER}:${GITHUB_TOKEN}" -o "/tmp/config.zip" "${FULL_URL}" && \
     mkdir -p /build/config && \
-    unzip -q "/tmp/config.zip" -d /build/config && \
-    rm -f "/tmp/config.zip" && \
-    echo "✅ Configuration téléchargée et extraite : ${FILENAME}"
+    if curl -f -L -u "${GITHUB_USER}:${GITHUB_TOKEN}" -o "/tmp/config.zip" "${FULL_URL}"; then \
+        unzip -q "/tmp/config.zip" -d /build/config && \
+        rm -f "/tmp/config.zip" && \
+        echo "✅ Configuration téléchargée et extraite : ${FILENAME}"; \
+    else \
+        echo "⚠️  Configuration ZIP non trouvée, création d'un répertoire vide"; \
+    fi
 
 # Nettoyage final du builder
 RUN rm -rf /var/cache/apk/* /tmp/* /root/.cache
