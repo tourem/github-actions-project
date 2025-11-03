@@ -58,33 +58,33 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       
       - name: Upload task-api JAR
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: task-api-jar
           path: task-api/target/task-api.jar
           retention-days: 30
-      
+
       - name: Upload task-api ZIP
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: task-api-distribution
           path: task-api/target/task-api-*.zip
           retention-days: 30
-      
+
       - name: Upload task-batch JAR
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: task-batch-jar
           path: task-batch/target/task-batch.jar
           retention-days: 30
-      
+
       - name: Upload task-batch ZIP
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: task-batch-distribution
           path: task-batch/target/task-batch-*.zip
           retention-days: 30
-      
+
       - name: Generate build info
         if: success()
         run: |
@@ -93,9 +93,9 @@ jobs:
           echo "Commit: ${{ github.sha }}" >> build-info.txt
           echo "Build time: $(date)" >> build-info.txt
           cat build-info.txt
-      
+
       - name: Upload build info
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: build-info
           path: build-info.txt
