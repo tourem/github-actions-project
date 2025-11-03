@@ -36,3 +36,13 @@ build/
 
 ### Mac OS ###
 .DS_Store
+
+### Application ###
+*.log
+*.pid
+logs/
+
+### Maven ###
+.mvn/
+mvnw
+mvnw.cmd

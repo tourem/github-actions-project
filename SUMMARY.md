@@ -33,6 +33,14 @@ Chaque module génère un fichier ZIP déployable contenant :
 - Fichiers de configuration
 - Documentation
 
+### 4. CI/CD avec GitHub Actions
+Pipeline automatisé qui :
+- ✅ Compile le projet automatiquement
+- ✅ Exécute les tests
+- ✅ Crée les packages (JAR et ZIP)
+- ✅ Publie vers GitHub Packages (`https://maven.pkg.github.com/tourem/github-actions-project`)
+- ✅ Archive les artifacts pour téléchargement
+
 ## 🚀 Démarrage Rapide
 
 ### Étape 1 : Build
@@ -141,6 +149,10 @@ github-actions-project/
 | **DEPLOYMENT.md** | Guide de déploiement en production |
 | **API_EXAMPLES.md** | Exemples d'utilisation de l'API (curl, Python, JS) |
 | **PROJECT_STRUCTURE.md** | Structure détaillée du projet |
+| **GITHUB_ACTIONS.md** | Guide complet GitHub Actions CI/CD |
+| **GIT_SETUP.md** | Configuration Git et push vers GitHub |
+| **CHANGELOG_GITHUB_ACTIONS.md** | Changelog des modifications CI/CD |
+| **COMMANDS.md** | Toutes les commandes utiles |
 | **task-api/README.md** | Documentation du module API |
 | **task-batch/README.md** | Documentation du module Batch |
 

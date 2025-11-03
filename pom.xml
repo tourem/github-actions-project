@@ -19,10 +19,20 @@
     <name>github-actions-project</name>
     <description>Projet multi-modules avec API REST et Batch</description>
 
+    <url>https://github.com/tourem/github-actions-project</url>
+
     <modules>
         <module>task-api</module>
         <module>task-batch</module>
     </modules>
+
+    <distributionManagement>
+        <repository>
+            <id>github</id>
+            <name>GitHub Packages</name>
+            <url>https://maven.pkg.github.com/tourem/github-actions-project</url>
+        </repository>
+    </distributionManagement>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>

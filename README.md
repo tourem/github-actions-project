@@ -1,5 +1,8 @@
 # Projet Multi-Modules Maven - Task Management
 
+[![CI/CD Pipeline](https://github.com/tourem/github-actions-project/actions/workflows/ci.yml/badge.svg)](https://github.com/tourem/github-actions-project/actions/workflows/ci.yml)
+[![GitHub Packages](https://img.shields.io/badge/GitHub-Packages-blue)](https://github.com/tourem/github-actions-project/packages)
+
 Projet Maven multi-modules avec Spring Boot 3 et JDK 21, composé de deux modules indépendants :
 - **task-api** : API REST pour la gestion des tâches
 - **task-batch** : Batch planifié qui crée automatiquement des tâches
@@ -258,6 +261,66 @@ Les deux modules sont **totalement indépendants** en termes de déploiement :
 - Chacun a sa propre base de données H2
 - Chacun peut être déployé sur des machines différentes
 - La communication se fait uniquement via HTTP REST
+
+## CI/CD avec GitHub Actions
+
+Le projet utilise GitHub Actions pour l'intégration et le déploiement continus :
+
+### Workflow automatique
+- ✅ Compilation du projet
+- ✅ Exécution des tests
+- ✅ Création des packages (JAR et ZIP)
+- ✅ Publication vers GitHub Packages
+- ✅ Archivage des artifacts
+
+### GitHub Packages
+
+Les artifacts sont publiés automatiquement sur :
+```
+https://maven.pkg.github.com/tourem/github-actions-project
+```
+
+**Packages disponibles** :
+- `com.larbotech:task-api:1.0-SNAPSHOT` (JAR)
+- `com.larbotech:task-api:1.0-SNAPSHOT:zip:distribution` (ZIP)
+- `com.larbotech:task-batch:1.0-SNAPSHOT` (JAR)
+- `com.larbotech:task-batch:1.0-SNAPSHOT:zip:distribution` (ZIP)
+
+### Utiliser les packages
+
+Pour utiliser les packages dans un autre projet Maven :
+
+1. **Configurer l'authentification** (`~/.m2/settings.xml`) :
+```xml
+<servers>
+  <server>
+    <id>github</id>
+    <username>VOTRE_USERNAME</username>
+    <password>VOTRE_GITHUB_TOKEN</password>
+  </server>
+</servers>
+```
+
+2. **Ajouter le repository** :
+```xml
+<repositories>
+  <repository>
+    <id>github</id>
+    <url>https://maven.pkg.github.com/tourem/github-actions-project</url>
+  </repository>
+</repositories>
+```
+
+3. **Ajouter la dépendance** :
+```xml
+<dependency>
+  <groupId>com.larbotech</groupId>
+  <artifactId>task-api</artifactId>
+  <version>1.0-SNAPSHOT</version>
+</dependency>
+```
+
+Pour plus de détails, consultez [GITHUB_ACTIONS.md](GITHUB_ACTIONS.md).
 
 ## Licence
 

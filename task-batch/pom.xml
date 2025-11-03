@@ -54,6 +54,7 @@
                     </descriptors>
                     <finalName>task-batch-${project.version}</finalName>
                     <appendAssemblyId>false</appendAssemblyId>
+                    <attach>true</attach>
                 </configuration>
                 <executions>
                     <execution>
@@ -62,6 +63,29 @@
                         <goals>
                             <goal>single</goal>
                         </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>build-helper-maven-plugin</artifactId>
+                <version>3.5.0</version>
+                <executions>
+                    <execution>
+                        <id>attach-distribution</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>attach-artifact</goal>
+                        </goals>
+                        <configuration>
+                            <artifacts>
+                                <artifact>
+                                    <file>${project.build.directory}/task-batch-${project.version}.zip</file>
+                                    <type>zip</type>
+                                    <classifier>distribution</classifier>
+                                </artifact>
+                            </artifacts>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>
