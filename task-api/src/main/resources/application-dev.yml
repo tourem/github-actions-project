@@ -1,0 +1,15 @@
+spring:
+  application:
+    name: task-api
+  profiles:
+    active: dev
+
+# Configuration pour l'environnement DEV
+server:
+  port: 8080
+
+logging:
+  level:
+    root: INFO
+    com.larbotech: DEBUG
+

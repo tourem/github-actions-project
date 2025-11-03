@@ -1,0 +1,12 @@
+spring:
+  application:
+    name: task-batch
+  profiles:
+    active: hml
+
+# Configuration pour l'environnement HML (Homologation)
+logging:
+  level:
+    root: INFO
+    com.larbotech: INFO
+

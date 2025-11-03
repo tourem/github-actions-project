@@ -1,0 +1,12 @@
+spring:
+  application:
+    name: task-batch
+  profiles:
+    active: dev
+
+# Configuration pour l'environnement DEV
+logging:
+  level:
+    root: INFO
+    com.larbotech: DEBUG
+
