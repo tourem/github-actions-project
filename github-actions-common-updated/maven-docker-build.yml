@@ -345,27 +345,30 @@ jobs:
             "${{ inputs.docker-registry || 'ghcr.io' }}" \
             "${{ inputs.maven-registry || format('https://maven.pkg.github.com/{0}', github.repository) }}"
 
-      - name: Upload deployment descriptor
+      - name: Upload deployment descriptors
         uses: actions/upload-artifact@v4
         with:
           name: deployment-descriptor-${{ matrix.module.name }}
-          path: ${{ matrix.module.name }}/deploy/deployment-descriptor-${{ matrix.module.name }}.json
+          path: |
+            ${{ matrix.module.name }}/deploy/deployment-descriptor-${{ matrix.module.name }}-*.json
+            ${{ matrix.module.name }}/deploy/deployment-descriptor-${{ matrix.module.name }}-latest.json
           retention-days: 90
 
-      - name: Commit and push deployment descriptor
+      - name: Commit and push deployment descriptors
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          
-          git add ${{ matrix.module.name }}/deploy/deployment-descriptor-${{ matrix.module.name }}.json
-          
+
+          # Ajouter tous les fichiers de descripteurs (avec timestamp et latest)
+          git add ${{ matrix.module.name }}/deploy/deployment-descriptor-${{ matrix.module.name }}-*.json
+
           if git diff --staged --quiet; then
             echo "✅ Aucun changement à committer"
           else
-            git commit -m "chore: update deployment descriptor for ${{ matrix.module.name }} [${{ needs.build-and-publish.outputs.version }}]"
-            git pull --rebase origin ${{ github.ref_name }}
+            TIMESTAMP=$(date +"%Y-%m-%d %H:%M:%S")
+            git commit -m "chore: add deployment descriptor for ${{ matrix.module.name }} [${{ needs.build-and-publish.outputs.version }}] - ${TIMESTAMP}"
             git push origin HEAD:${{ github.ref_name }}
-            echo "✅ Deployment descriptor committed and pushed"
+            echo "✅ Deployment descriptors committed and pushed"
           fi
 
       - name: Generate deployment summary
@@ -373,12 +376,12 @@ jobs:
           echo "## 📦 Deployment Descriptor: ${{ matrix.module.name }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Version:** ${{ needs.build-and-publish.outputs.version }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Environment:** ${{ inputs.deployment-environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Environment:** ${{ inputs.environment }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**File:** \`${{ matrix.module.name }}/deploy/deployment-descriptor-${{ matrix.module.name }}.json\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Latest File:** \`${{ matrix.module.name }}/deploy/deployment-descriptor-${{ matrix.module.name }}-latest.json\`" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Content:**" >> $GITHUB_STEP_SUMMARY
           echo '```json' >> $GITHUB_STEP_SUMMARY
-          cat ${{ matrix.module.name }}/deploy/deployment-descriptor-${{ matrix.module.name }}.json >> $GITHUB_STEP_SUMMARY
+          cat ${{ matrix.module.name }}/deploy/deployment-descriptor-${{ matrix.module.name }}-latest.json >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
 

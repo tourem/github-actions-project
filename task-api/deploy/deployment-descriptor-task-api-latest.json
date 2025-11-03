@@ -1,0 +1,76 @@
+{
+  "module": {
+    "name": "task-api",
+    "version": "1.0-SNAPSHOT",
+    "groupId": "com.larbotech",
+    "artifactId": "task-api"
+  },
+  "springProfiles": {
+    "dev": "dev",
+    "hml": "hml",
+    "prd": "prd"
+  },
+  "artifacts": {
+    "jar": {
+      "groupId": "com.larbotech",
+      "artifactId": "task-api",
+      "version": "1.0-SNAPSHOT",
+      "type": "jar",
+      "url": "https://maven.pkg.github.com/tourem/github-actions-project/com/larbotech/task-api/1.0-SNAPSHOT/task-api-1.0-SNAPSHOT.jar"
+    },
+    "distribution": {
+      "groupId": "com.larbotech",
+      "artifactId": "task-api",
+      "version": "1.0-SNAPSHOT",
+      "type": "zip",
+      "classifier": "distribution",
+      "url": "https://maven.pkg.github.com/tourem/github-actions-project/com/larbotech/task-api/1.0-SNAPSHOT/task-api-1.0-SNAPSHOT-distribution.zip"
+    }
+  },
+  "configurations": {
+    "dev": {
+      "groupId": "com.larbotech",
+      "artifactId": "task-api",
+      "version": "1.0-SNAPSHOT",
+      "type": "zip",
+      "classifier": "conf-dev",
+      "url": "https://maven.pkg.github.com/tourem/github-actions-project/com/larbotech/task-api/1.0-SNAPSHOT/task-api-1.0-SNAPSHOT-conf-dev.zip",
+      "vaultFile": "vault-dev.yml"
+    },
+    "hml": {
+      "groupId": "com.larbotech",
+      "artifactId": "task-api",
+      "version": "1.0-SNAPSHOT",
+      "type": "zip",
+      "classifier": "conf-hml",
+      "url": "https://maven.pkg.github.com/tourem/github-actions-project/com/larbotech/task-api/1.0-SNAPSHOT/task-api-1.0-SNAPSHOT-conf-hml.zip",
+      "vaultFile": "vault-hml.yml"
+    },
+    "prd": {
+      "groupId": "com.larbotech",
+      "artifactId": "task-api",
+      "version": "1.0-SNAPSHOT",
+      "type": "zip",
+      "classifier": "conf-prd",
+      "url": "https://maven.pkg.github.com/tourem/github-actions-project/com/larbotech/task-api/1.0-SNAPSHOT/task-api-1.0-SNAPSHOT-conf-prd.zip",
+      "vaultFile": "vault-prd.yml"
+    }
+  },
+  "docker": {
+    "registry": "ghcr.io",
+    "repository": "tourem/github-actions-project",
+    "image": "ghcr.io/tourem/github-actions-project/task-api",
+    "tags": {
+      "version": "1.0-SNAPSHOT",
+      "latest": "ghcr.io/tourem/github-actions-project/task-api:latest",
+      "versioned": "ghcr.io/tourem/github-actions-project/task-api:1.0-SNAPSHOT"
+    }
+  },
+  "deployment": {
+    "environment": "dev",
+    "timestamp": "2025-11-03T21:58:24Z",
+    "buildNumber": "0",
+    "commitSha": "unknown",
+    "branch": "unknown"
+  }
+}

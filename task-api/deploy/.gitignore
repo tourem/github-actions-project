@@ -1,0 +1,5 @@
+# Ignorer les anciens fichiers de descripteurs sans timestamp
+deployment-descriptor-*.json
+!deployment-descriptor-*-*.json
+!deployment-descriptor-*-latest.json
+

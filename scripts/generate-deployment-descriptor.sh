@@ -153,8 +153,14 @@ generate_maven_url() {
 SPRING_PROFILES=$(detect_spring_profiles)
 echo "   Profils Spring détectés: ${SPRING_PROFILES}"
 
-# Générer le JSON
-OUTPUT_FILE="${DEPLOY_DIR}/deployment-descriptor-${MODULE_NAME}.json"
+# Générer le timestamp pour éviter les conflits
+TIMESTAMP=$(date +"%Y%m%d-%H%M%S")
+
+# Générer le JSON avec timestamp
+OUTPUT_FILE="${DEPLOY_DIR}/deployment-descriptor-${MODULE_NAME}-${TIMESTAMP}.json"
+
+# Créer aussi un lien symbolique vers le dernier fichier (sans timestamp)
+LATEST_FILE="${DEPLOY_DIR}/deployment-descriptor-${MODULE_NAME}-latest.json"
 
 cat > "${OUTPUT_FILE}" <<EOF
 {
@@ -264,7 +270,11 @@ cat >> "${OUTPUT_FILE}" <<EOF
 }
 EOF
 
+# Créer une copie "latest" pour faciliter l'accès
+cp "${OUTPUT_FILE}" "${LATEST_FILE}"
+
 echo "✅ Descripteur de déploiement généré: ${OUTPUT_FILE}"
+echo "✅ Copie latest créée: ${LATEST_FILE}"
 echo ""
 echo "📄 Contenu du fichier:"
 cat "${OUTPUT_FILE}"
@@ -276,7 +286,8 @@ echo "   Module: ${MODULE_NAME}"
 echo "   Version: ${VERSION}"
 echo "   Profils Spring: ${SPRING_PROFILES}"
 echo "   Image Docker: ${DOCKER_REGISTRY}/${GITHUB_REPO}/${MODULE_NAME}:${VERSION}"
-echo "   Fichier: ${OUTPUT_FILE}"
+echo "   Fichier avec timestamp: ${OUTPUT_FILE}"
+echo "   Fichier latest: ${LATEST_FILE}"
 echo ""
 echo "✅ Terminé!"
 
