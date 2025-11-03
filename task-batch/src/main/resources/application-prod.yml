@@ -1,0 +1,42 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: task-batch
+  
+  datasource:
+    url: jdbc:h2:mem:batchdb
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: 
+  
+  h2:
+    console:
+      enabled: false  # Désactivé en production
+  
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: update  # update au lieu de create-drop en production
+    show-sql: false  # Désactivé en production
+    properties:
+      hibernate:
+        format_sql: false
+
+# Configuration du batch
+task:
+  api:
+    base-url: http://localhost:8080  # À modifier selon l'environnement
+  batch:
+    cron: "0 0/30 * * * ?"  # Toutes les 30 minutes
+
+logging:
+  level:
+    com.larbotech.taskbatch: INFO
+    org.springframework.scheduling: WARN
+  file:
+    name: logs/task-batch.log
+  pattern:
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+

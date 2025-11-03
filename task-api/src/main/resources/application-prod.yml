@@ -1,0 +1,35 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: task-api
+  
+  datasource:
+    url: jdbc:h2:mem:taskdb
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: 
+  
+  h2:
+    console:
+      enabled: false  # Désactivé en production
+  
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: update  # update au lieu de create-drop en production
+    show-sql: false  # Désactivé en production
+    properties:
+      hibernate:
+        format_sql: false
+
+logging:
+  level:
+    com.larbotech.taskapi: INFO
+    org.springframework.web: WARN
+  file:
+    name: logs/task-api.log
+  pattern:
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
