@@ -2,67 +2,26 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches:
-      - main
-      - develop
+    branches: [main, develop]
   pull_request:
-    branches:
-      - main
-      - develop
+    branches: [main, develop]
   workflow_dispatch:
     inputs:
-      dockerfile_branch:
-        description: 'Branch of docker-file-common repository to use'
-        required: false
-        default: 'main'
-        type: string
       environment:
-        description: 'Environment to deploy (dev, hml, prd)'
-        required: false
-        default: 'dev'
+        description: 'Environment to deploy'
         type: choice
-        options:
-          - dev
-          - hml
-          - prd
+        options: [dev, hml, prd]
+        default: dev
+
+permissions:
+  contents: write
+  packages: write
 
 jobs:
   build-and-deploy:
-    name: Build and Deploy
-    permissions:
-      contents: write
-      packages: write
     uses: tourem/github-actions-common/.github/workflows/maven-docker-build.yml@main
     with:
-      # Configuration Maven
       java-version: '21'
-      maven-version: '3.9'
-      maven-pom: 'pom.xml'
-      
-      # Configuration Dockerfile
       dockerfile-repo: 'tourem/docker-file-common'
-      dockerfile-branch: ${{ github.event.inputs.dockerfile_branch || 'main' }}
-      
-      # Modules Docker à builder
-      # Note: La configuration dépend de l'environnement (conf-dev, conf-hml, conf-prd)
-      docker-modules: |
-        [
-          {
-            "name": "task-api",
-            "artifact": "com.larbotech:task-api:jar",
-            "config": "com.larbotech:task-api:zip:conf-${{ github.event.inputs.environment || 'dev' }}"
-          },
-          {
-            "name": "task-batch",
-            "artifact": "com.larbotech:task-batch:jar",
-            "config": "com.larbotech:task-batch:zip:conf-${{ github.event.inputs.environment || 'dev' }}"
-          }
-        ]
-      
-      # Options
-      skip-tests: false
-      docker-build-enabled: true
-      deployment-descriptors-enabled: true
-      deployment-environment: ${{ github.event.inputs.environment || 'dev' }}
-
+      environment: ${{ github.event.inputs.environment || 'dev' }}
     secrets: inherit

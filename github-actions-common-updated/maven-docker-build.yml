@@ -35,9 +35,16 @@ on:
       
       # Configuration Docker Builds
       docker-modules:
-        description: 'JSON array of modules to build (name, artifact, config)'
-        required: true
+        description: 'JSON array of modules to build (name, artifact, config). If empty, auto-detect from pom.xml'
+        required: false
         type: string
+        default: ''
+
+      environment:
+        description: 'Deployment environment (dev, hml, prd) - used for auto-detection'
+        required: false
+        type: string
+        default: 'dev'
       
       # Options
       skip-tests:
@@ -58,11 +65,7 @@ on:
         type: boolean
         default: true
       
-      deployment-environment:
-        description: 'Deployment environment (dev, hml, prd)'
-        required: false
-        type: string
-        default: 'dev'
+
       
       maven-registry:
         description: 'Maven registry URL (auto-detected if not provided)'
@@ -86,17 +89,62 @@ on:
         value: ${{ jobs.build-docker-images.outputs.images }}
 
 jobs:
+  detect-modules:
+    name: Auto-Detect Modules
+    runs-on: ubuntu-latest
+
+    outputs:
+      modules: ${{ steps.detect.outputs.modules }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install xmllint
+        run: sudo apt-get update && sudo apt-get install -y libxml2-utils jq
+
+      - name: Checkout scripts from github-actions-common
+        uses: actions/checkout@v4
+        with:
+          repository: tourem/github-actions-common
+          ref: main
+          path: .github-actions-common
+
+      - name: Auto-detect modules
+        id: detect
+        run: |
+          # Copier le script de détection
+          cp .github-actions-common/scripts/detect-modules.sh ./detect-modules.sh
+          chmod +x ./detect-modules.sh
+
+          # Exécuter la détection
+          ./detect-modules.sh pom.xml "${{ inputs.environment }}"
+        env:
+          GITHUB_OUTPUT: ${{ github.output }}
+
+      - name: Use provided modules or auto-detected
+        id: final-modules
+        run: |
+          if [ -n "${{ inputs.docker-modules }}" ]; then
+            echo "Using provided modules configuration"
+            echo "modules=${{ inputs.docker-modules }}" >> $GITHUB_OUTPUT
+          else
+            echo "Using auto-detected modules configuration"
+            echo "modules=${{ steps.detect.outputs.modules }}" >> $GITHUB_OUTPUT
+          fi
+
   build-and-publish:
     name: Build and Publish Maven Artifacts
+    needs: detect-modules
     runs-on: ubuntu-latest
-    
+
     outputs:
       version: ${{ steps.get-version.outputs.version }}
-    
+
     permissions:
       contents: read
       packages: write
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -152,20 +200,20 @@ jobs:
 
   build-docker-images:
     name: Build and Push Docker Images
-    needs: build-and-publish
+    needs: [detect-modules, build-and-publish]
     if: inputs.docker-build-enabled && (github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop') || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
-    
+
     outputs:
       images: ${{ steps.image-list.outputs.images }}
-    
+
     permissions:
       contents: read
       packages: write
-    
+
     strategy:
       matrix:
-        module: ${{ fromJson(inputs.docker-modules) }}
+        module: ${{ fromJson(needs.detect-modules.outputs.modules) }}
     
     steps:
       - name: Checkout code
@@ -265,16 +313,16 @@ jobs:
 
   generate-deployment-descriptors:
     name: Generate Deployment Descriptors
-    needs: [build-and-publish, build-docker-images]
+    needs: [detect-modules, build-and-publish, build-docker-images]
     if: inputs.deployment-descriptors-enabled && (github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop') || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
-    
+
     permissions:
       contents: write
-    
+
     strategy:
       matrix:
-        module: ${{ fromJson(inputs.docker-modules) }}
+        module: ${{ fromJson(needs.detect-modules.outputs.modules) }}
     
     steps:
       - name: Checkout code
@@ -293,7 +341,7 @@ jobs:
           ./scripts/generate-deployment-descriptor.sh \
             "${{ matrix.module.name }}" \
             "${{ needs.build-and-publish.outputs.version }}" \
-            "${{ inputs.deployment-environment }}" \
+            "${{ inputs.environment }}" \
             "${{ inputs.docker-registry || 'ghcr.io' }}" \
             "${{ inputs.maven-registry || format('https://maven.pkg.github.com/{0}', github.repository) }}"
 
