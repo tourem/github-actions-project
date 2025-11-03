@@ -30,7 +30,7 @@ jobs:
   build-and-deploy:
     name: Build and Deploy
     permissions:
-      contents: read
+      contents: write
       packages: write
     uses: tourem/github-actions-common/.github/workflows/maven-docker-build.yml@main
     with:
