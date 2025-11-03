@@ -90,7 +90,7 @@ cp "${OUTPUT_FILE}" "${LATEST_FILE}"
       ${{ matrix.module.name }}/deploy/deployment-descriptor-${{ matrix.module.name }}-latest.json
 ```
 
-#### Commit et Push
+#### Commit et Push avec Retry Logic
 
 **Avant** :
 ```yaml
@@ -107,10 +107,43 @@ git add ${{ matrix.module.name }}/deploy/deployment-descriptor-${{ matrix.module
 
 TIMESTAMP=$(date +"%Y-%m-%d %H:%M:%S")
 git commit -m "chore: add deployment descriptor for ${{ matrix.module.name }} [${{ needs.build-and-publish.outputs.version }}] - ${TIMESTAMP}"
-git push origin HEAD:${{ github.ref_name }}
+
+# Retry logic pour gérer les pushs concurrents
+MAX_RETRIES=5
+RETRY_COUNT=0
+PUSH_SUCCESS=false
+
+while [ $RETRY_COUNT -lt $MAX_RETRIES ] && [ "$PUSH_SUCCESS" = "false" ]; do
+  echo "🔄 Tentative de push ($((RETRY_COUNT + 1))/$MAX_RETRIES)..."
+
+  if git push origin HEAD:${{ github.ref_name }}; then
+    PUSH_SUCCESS=true
+    echo "✅ Deployment descriptors committed and pushed"
+  else
+    echo "⚠️  Push échoué, pull et retry..."
+    git pull --rebase origin ${{ github.ref_name }}
+    RETRY_COUNT=$((RETRY_COUNT + 1))
+
+    if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
+      # Attendre un délai aléatoire entre 1 et 5 secondes
+      SLEEP_TIME=$((1 + RANDOM % 5))
+      echo "⏳ Attente de ${SLEEP_TIME}s avant retry..."
+      sleep $SLEEP_TIME
+    fi
+  fi
+done
+
+if [ "$PUSH_SUCCESS" = "false" ]; then
+  echo "❌ Échec du push après $MAX_RETRIES tentatives"
+  exit 1
+fi
 ```
 
-**Note** : Plus de `git pull --rebase` car chaque fichier est unique (timestamp).
+**Améliorations** :
+- ✅ Retry automatique jusqu'à 5 tentatives
+- ✅ Pull et rebase avant chaque retry
+- ✅ Délai aléatoire (1-5s) pour éviter les collisions
+- ✅ Gestion des jobs parallèles (task-api et task-batch)
 
 ---
 
@@ -136,12 +169,12 @@ Cela permet d'ignorer les anciens fichiers sans timestamp tout en gardant les no
 
 ## 📊 Avantages de la Solution
 
-### 1. Zéro Conflit
+### 1. Gestion des Conflits
 
-✅ Chaque build génère un fichier unique  
-✅ Pas de conflit de merge  
-✅ Pas besoin de rebase  
-✅ Builds parallèles possibles  
+✅ Chaque build génère un fichier unique (timestamp)
+✅ Retry automatique en cas de conflit (jusqu'à 5 tentatives)
+✅ Délai aléatoire pour éviter les collisions
+✅ Builds parallèles possibles (task-api et task-batch)
 
 ### 2. Historique Complet
 
@@ -246,8 +279,10 @@ fi
 - ✅ **Timestamp ajouté** au nom des fichiers (YYYYMMDD-HHMMSS)
 - ✅ **Fichier "latest"** créé pour faciliter l'accès
 - ✅ **Workflow mis à jour** pour gérer les fichiers avec timestamp
-- ✅ **Plus de rebase** nécessaire (pas de conflit)
+- ✅ **Retry logic** implémentée (5 tentatives max)
+- ✅ **Délai aléatoire** entre les retries (1-5s)
 - ✅ **Fichiers .gitignore** ajoutés pour ignorer les anciens fichiers
+- ✅ **Gestion des jobs parallèles** (task-api et task-batch)
 - ✅ **Push réussi** sur les deux repositories
 
 ---
@@ -270,13 +305,14 @@ fi
 
 ## 🎉 Conclusion
 
-**Les conflits de merge sont maintenant évités grâce aux timestamps !**
+**Les conflits de merge sont maintenant gérés automatiquement !**
 
-✅ **Chaque build** génère un fichier unique  
-✅ **Zéro conflit** de merge  
-✅ **Historique complet** des builds  
-✅ **Accès facile** via le fichier "latest"  
-✅ **Builds parallèles** possibles  
+✅ **Chaque build** génère un fichier unique (timestamp)
+✅ **Retry automatique** en cas de conflit (5 tentatives)
+✅ **Délai aléatoire** pour éviter les collisions
+✅ **Historique complet** des builds
+✅ **Accès facile** via le fichier "latest"
+✅ **Builds parallèles** possibles (task-api et task-batch)
 
-**Le workflow peut maintenant s'exécuter en parallèle sans problème ! 🚀**
+**Le workflow peut maintenant s'exécuter en parallèle avec gestion automatique des conflits ! 🚀**
 

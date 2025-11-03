@@ -367,8 +367,36 @@ jobs:
           else
             TIMESTAMP=$(date +"%Y-%m-%d %H:%M:%S")
             git commit -m "chore: add deployment descriptor for ${{ matrix.module.name }} [${{ needs.build-and-publish.outputs.version }}] - ${TIMESTAMP}"
-            git push origin HEAD:${{ github.ref_name }}
-            echo "✅ Deployment descriptors committed and pushed"
+
+            # Retry logic pour gérer les pushs concurrents
+            MAX_RETRIES=5
+            RETRY_COUNT=0
+            PUSH_SUCCESS=false
+
+            while [ $RETRY_COUNT -lt $MAX_RETRIES ] && [ "$PUSH_SUCCESS" = "false" ]; do
+              echo "🔄 Tentative de push ($((RETRY_COUNT + 1))/$MAX_RETRIES)..."
+
+              if git push origin HEAD:${{ github.ref_name }}; then
+                PUSH_SUCCESS=true
+                echo "✅ Deployment descriptors committed and pushed"
+              else
+                echo "⚠️  Push échoué, pull et retry..."
+                git pull --rebase origin ${{ github.ref_name }}
+                RETRY_COUNT=$((RETRY_COUNT + 1))
+
+                if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
+                  # Attendre un délai aléatoire entre 1 et 5 secondes pour éviter les collisions
+                  SLEEP_TIME=$((1 + RANDOM % 5))
+                  echo "⏳ Attente de ${SLEEP_TIME}s avant retry..."
+                  sleep $SLEEP_TIME
+                fi
+              fi
+            done
+
+            if [ "$PUSH_SUCCESS" = "false" ]; then
+              echo "❌ Échec du push après $MAX_RETRIES tentatives"
+              exit 1
+            fi
           fi
 
       - name: Generate deployment summary
