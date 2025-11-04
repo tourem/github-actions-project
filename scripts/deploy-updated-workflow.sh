@@ -16,7 +16,7 @@ TEMP_DIR="/tmp/github-actions-common-update"
 WORKFLOW_FILE="github-actions-common-updated/maven-docker-build.yml"
 DETECT_SCRIPT="scripts/detect-modules.sh"
 DESCRIPTOR_SCRIPT="scripts/generate-deployment-descriptor.sh"
-SETTINGS_FILE=".github/workflows/settings.xml"
+SETTINGS_FILE="github-actions-common-updated/settings.xml"
 
 # Vérifier que les fichiers existent
 if [ ! -f "$WORKFLOW_FILE" ]; then

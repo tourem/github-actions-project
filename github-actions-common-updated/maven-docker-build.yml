@@ -182,6 +182,13 @@ jobs:
             mvn -B clean package -f ${{ inputs.maven-pom }}
           fi
 
+      - name: Checkout github-actions-common for settings.xml
+        uses: actions/checkout@v4
+        with:
+          repository: tourem/github-actions-common
+          ref: main
+          path: .github-actions-common
+
       - name: Setup Maven settings
         run: |
           mkdir -p ~/.m2
