@@ -31,11 +31,36 @@ echo "   Maven Registry: ${MAVEN_REGISTRY}"
 
 # Répertoires
 MODULE_DIR="${MODULE_NAME}"
+MODULE_POM="${MODULE_DIR}/pom.xml"
 RESOURCES_DIR="${MODULE_DIR}/src/main/resources"
 DEPLOY_DIR="${MODULE_DIR}/deploy"
 
+# Vérifier que le pom.xml du module existe
+if [ ! -f "${MODULE_POM}" ]; then
+    echo "❌ Erreur: Le fichier ${MODULE_POM} n'existe pas"
+    exit 1
+fi
+
 # Créer le répertoire deploy s'il n'existe pas
 mkdir -p "${DEPLOY_DIR}"
+
+# Extraire le groupId depuis le pom.xml du module
+echo "🔍 Extraction du groupId depuis ${MODULE_POM}..."
+GROUP_ID=$(xmllint --xpath "string(//*[local-name()='project']/*[local-name()='groupId'])" "${MODULE_POM}" 2>/dev/null || echo "")
+
+# Si le groupId n'est pas trouvé dans le module, chercher dans le parent
+if [ -z "$GROUP_ID" ]; then
+    echo "   GroupId non trouvé dans le module, recherche dans le parent..."
+    GROUP_ID=$(xmllint --xpath "string(//*[local-name()='project']/*[local-name()='parent']/*[local-name()='groupId'])" "${MODULE_POM}" 2>/dev/null || echo "")
+fi
+
+# Vérifier que le groupId a été trouvé
+if [ -z "$GROUP_ID" ]; then
+    echo "❌ Erreur: Impossible d'extraire le groupId depuis ${MODULE_POM}"
+    exit 1
+fi
+
+echo "   GroupId détecté: ${GROUP_ID}"
 
 # Fonction pour détecter les profils Spring
 detect_spring_profiles() {
@@ -128,24 +153,23 @@ detect_spring_profiles() {
 
 # Fonction pour générer l'URL Maven
 generate_maven_url() {
-    local groupId="com.larbotech"
     local artifactId="$1"
     local version="$2"
     local type="$3"
     local classifier="$4"
-    
+
     # Convertir groupId en chemin (com.larbotech -> com/larbotech)
-    local groupPath=$(echo "$groupId" | tr '.' '/')
-    
+    local groupPath=$(echo "$GROUP_ID" | tr '.' '/')
+
     # Construire l'URL
     local url="${MAVEN_REGISTRY}/${groupPath}/${artifactId}/${version}/${artifactId}-${version}"
-    
+
     if [ -n "$classifier" ]; then
         url="${url}-${classifier}"
     fi
-    
+
     url="${url}.${type}"
-    
+
     echo "$url"
 }
 
@@ -167,7 +191,7 @@ cat > "${OUTPUT_FILE}" <<EOF
   "module": {
     "name": "${MODULE_NAME}",
     "version": "${VERSION}",
-    "groupId": "com.larbotech",
+    "groupId": "${GROUP_ID}",
     "artifactId": "${MODULE_NAME}"
   },
   "springProfiles": {
@@ -206,14 +230,14 @@ cat >> "${OUTPUT_FILE}" <<EOF
   },
   "artifacts": {
     "jar": {
-      "groupId": "com.larbotech",
+      "groupId": "${GROUP_ID}",
       "artifactId": "${MODULE_NAME}",
       "version": "${VERSION}",
       "type": "jar",
       "url": "$(generate_maven_url "${MODULE_NAME}" "${VERSION}" "jar" "")"
     },
     "distribution": {
-      "groupId": "com.larbotech",
+      "groupId": "${GROUP_ID}",
       "artifactId": "${MODULE_NAME}",
       "version": "${VERSION}",
       "type": "zip",
@@ -223,7 +247,7 @@ cat >> "${OUTPUT_FILE}" <<EOF
   },
   "configurations": {
     "dev": {
-      "groupId": "com.larbotech",
+      "groupId": "${GROUP_ID}",
       "artifactId": "${MODULE_NAME}",
       "version": "${VERSION}",
       "type": "zip",
@@ -232,7 +256,7 @@ cat >> "${OUTPUT_FILE}" <<EOF
       "vaultFile": "vault-dev.yml"
     },
     "hml": {
-      "groupId": "com.larbotech",
+      "groupId": "${GROUP_ID}",
       "artifactId": "${MODULE_NAME}",
       "version": "${VERSION}",
       "type": "zip",
@@ -241,7 +265,7 @@ cat >> "${OUTPUT_FILE}" <<EOF
       "vaultFile": "vault-hml.yml"
     },
     "prd": {
-      "groupId": "com.larbotech",
+      "groupId": "${GROUP_ID}",
       "artifactId": "${MODULE_NAME}",
       "version": "${VERSION}",
       "type": "zip",
