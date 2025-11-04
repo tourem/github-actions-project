@@ -16,6 +16,7 @@ TEMP_DIR="/tmp/github-actions-common-update"
 WORKFLOW_FILE="github-actions-common-updated/maven-docker-build.yml"
 DETECT_SCRIPT="scripts/detect-modules.sh"
 DESCRIPTOR_SCRIPT="scripts/generate-deployment-descriptor.sh"
+SETTINGS_FILE=".github/workflows/settings.xml"
 
 # Vérifier que les fichiers existent
 if [ ! -f "$WORKFLOW_FILE" ]; then
@@ -30,6 +31,11 @@ fi
 
 if [ ! -f "$DESCRIPTOR_SCRIPT" ]; then
     echo "❌ Fichier script non trouvé: $DESCRIPTOR_SCRIPT"
+    exit 1
+fi
+
+if [ ! -f "$SETTINGS_FILE" ]; then
+    echo "❌ Fichier settings.xml non trouvé: $SETTINGS_FILE"
     exit 1
 fi
 
@@ -58,6 +64,7 @@ echo "📋 Copie des fichiers..."
 cp "${OLDPWD}/${WORKFLOW_FILE}" .github/workflows/maven-docker-build.yml
 cp "${OLDPWD}/${DETECT_SCRIPT}" scripts/detect-modules.sh
 cp "${OLDPWD}/${DESCRIPTOR_SCRIPT}" scripts/generate-deployment-descriptor.sh
+cp "${OLDPWD}/${SETTINGS_FILE}" settings.xml
 chmod +x scripts/detect-modules.sh
 chmod +x scripts/generate-deployment-descriptor.sh
 

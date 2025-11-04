@@ -2,7 +2,7 @@
   "module": {
     "name": "task-batch",
     "version": "1.0-SNAPSHOT",
-    "groupId": "org.springframework.boot",
+    "groupId": "com.larbotech",
     "artifactId": "task-batch"
   },
   "springProfiles": {
@@ -12,47 +12,47 @@
   },
   "artifacts": {
     "jar": {
-      "groupId": "org.springframework.boot",
+      "groupId": "com.larbotech",
       "artifactId": "task-batch",
       "version": "1.0-SNAPSHOT",
       "type": "jar",
-      "url": "https://maven.pkg.github.com/tourem/github-actions-project/org/springframework/boot/task-batch/1.0-SNAPSHOT/task-batch-1.0-SNAPSHOT.jar"
+      "url": "https://maven.pkg.github.com/tourem/github-actions-project/com/larbotech/task-batch/1.0-SNAPSHOT/task-batch-1.0-SNAPSHOT.jar"
     },
     "distribution": {
-      "groupId": "org.springframework.boot",
+      "groupId": "com.larbotech",
       "artifactId": "task-batch",
       "version": "1.0-SNAPSHOT",
       "type": "zip",
       "classifier": "distribution",
-      "url": "https://maven.pkg.github.com/tourem/github-actions-project/org/springframework/boot/task-batch/1.0-SNAPSHOT/task-batch-1.0-SNAPSHOT-distribution.zip"
+      "url": "https://maven.pkg.github.com/tourem/github-actions-project/com/larbotech/task-batch/1.0-SNAPSHOT/task-batch-1.0-SNAPSHOT-distribution.zip"
     }
   },
   "configurations": {
     "dev": {
-      "groupId": "org.springframework.boot",
+      "groupId": "com.larbotech",
       "artifactId": "task-batch",
       "version": "1.0-SNAPSHOT",
       "type": "zip",
       "classifier": "conf-dev",
-      "url": "https://maven.pkg.github.com/tourem/github-actions-project/org/springframework/boot/task-batch/1.0-SNAPSHOT/task-batch-1.0-SNAPSHOT-conf-dev.zip",
+      "url": "https://maven.pkg.github.com/tourem/github-actions-project/com/larbotech/task-batch/1.0-SNAPSHOT/task-batch-1.0-SNAPSHOT-conf-dev.zip",
       "vaultFile": "vault-dev.yml"
     },
     "hml": {
-      "groupId": "org.springframework.boot",
+      "groupId": "com.larbotech",
       "artifactId": "task-batch",
       "version": "1.0-SNAPSHOT",
       "type": "zip",
       "classifier": "conf-hml",
-      "url": "https://maven.pkg.github.com/tourem/github-actions-project/org/springframework/boot/task-batch/1.0-SNAPSHOT/task-batch-1.0-SNAPSHOT-conf-hml.zip",
+      "url": "https://maven.pkg.github.com/tourem/github-actions-project/com/larbotech/task-batch/1.0-SNAPSHOT/task-batch-1.0-SNAPSHOT-conf-hml.zip",
       "vaultFile": "vault-hml.yml"
     },
     "prd": {
-      "groupId": "org.springframework.boot",
+      "groupId": "com.larbotech",
       "artifactId": "task-batch",
       "version": "1.0-SNAPSHOT",
       "type": "zip",
       "classifier": "conf-prd",
-      "url": "https://maven.pkg.github.com/tourem/github-actions-project/org/springframework/boot/task-batch/1.0-SNAPSHOT/task-batch-1.0-SNAPSHOT-conf-prd.zip",
+      "url": "https://maven.pkg.github.com/tourem/github-actions-project/com/larbotech/task-batch/1.0-SNAPSHOT/task-batch-1.0-SNAPSHOT-conf-prd.zip",
       "vaultFile": "vault-prd.yml"
     }
   },
@@ -68,9 +68,9 @@
   },
   "deployment": {
     "environment": "dev",
-    "timestamp": "2025-11-04T10:10:05Z",
-    "buildNumber": "26",
-    "commitSha": "8b4240affd7f9eca9a4bc70624819ae32f02adcf",
-    "branch": "main"
+    "timestamp": "2025-11-04T10:04:40Z",
+    "buildNumber": "0",
+    "commitSha": "unknown",
+    "branch": "unknown"
   }
 }

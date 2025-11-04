@@ -182,6 +182,14 @@ jobs:
             mvn -B clean package -f ${{ inputs.maven-pom }}
           fi
 
+      - name: Setup Maven settings
+        run: |
+          mkdir -p ~/.m2
+          cp .github-actions-common/settings.xml ~/.m2/settings.xml
+        env:
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Publish to Maven registry
         run: |
           mvn -B deploy -DskipTests -f ${{ inputs.maven-pom }}
