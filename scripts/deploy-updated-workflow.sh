@@ -14,7 +14,8 @@ echo ""
 REPO_URL="https://github.com/tourem/github-actions-common.git"
 TEMP_DIR="/tmp/github-actions-common-update"
 WORKFLOW_FILE="github-actions-common-updated/maven-docker-build.yml"
-SCRIPT_FILE="scripts/generate-deployment-descriptor.sh"
+DETECT_SCRIPT="scripts/detect-modules.sh"
+DESCRIPTOR_SCRIPT="scripts/generate-deployment-descriptor.sh"
 
 # Vérifier que les fichiers existent
 if [ ! -f "$WORKFLOW_FILE" ]; then
@@ -22,8 +23,13 @@ if [ ! -f "$WORKFLOW_FILE" ]; then
     exit 1
 fi
 
-if [ ! -f "$SCRIPT_FILE" ]; then
-    echo "❌ Fichier script non trouvé: $SCRIPT_FILE"
+if [ ! -f "$DETECT_SCRIPT" ]; then
+    echo "❌ Fichier script non trouvé: $DETECT_SCRIPT"
+    exit 1
+fi
+
+if [ ! -f "$DESCRIPTOR_SCRIPT" ]; then
+    echo "❌ Fichier script non trouvé: $DESCRIPTOR_SCRIPT"
     exit 1
 fi
 
@@ -50,7 +56,9 @@ mkdir -p scripts
 # Copier les fichiers
 echo "📋 Copie des fichiers..."
 cp "${OLDPWD}/${WORKFLOW_FILE}" .github/workflows/maven-docker-build.yml
-cp "${OLDPWD}/${SCRIPT_FILE}" scripts/generate-deployment-descriptor.sh
+cp "${OLDPWD}/${DETECT_SCRIPT}" scripts/detect-modules.sh
+cp "${OLDPWD}/${DESCRIPTOR_SCRIPT}" scripts/generate-deployment-descriptor.sh
+chmod +x scripts/detect-modules.sh
 chmod +x scripts/generate-deployment-descriptor.sh
 
 # Créer un README
@@ -113,6 +121,29 @@ jobs:
 - `docker-images`: Liste des images Docker buildées
 
 ## Scripts
+
+### detect-modules.sh
+
+Script pour auto-détecter les modules Maven déployables.
+
+#### Usage
+
+```bash
+./scripts/detect-modules.sh <pom-file> <environment> [output-file]
+```
+
+#### Exemple
+
+```bash
+./scripts/detect-modules.sh pom.xml dev
+```
+
+#### Critères de Détection
+
+Un module est considéré comme déployable s'il remplit au moins un des critères :
+- Présence du plugin `spring-boot-maven-plugin`
+- Packaging `war` ou `ear`
+- Présence du dossier `src/main/vault/`
 
 ### generate-deployment-descriptor.sh
 
@@ -191,12 +222,14 @@ EOF
 # Commit initial
 echo "💾 Commit des fichiers..."
 git add .
-git commit -m "feat: add reusable workflow with deployment descriptors generation
+git commit -m "feat: add reusable workflow with auto-detection and deployment descriptors
 
 - Add maven-docker-build.yml workflow
+- Add detect-modules.sh script for auto-detection of deployable modules
 - Add generate-deployment-descriptor.sh script
 - Support for deployment descriptors generation
 - Auto-detection of Spring profiles
+- Extract groupId dynamically from pom.xml
 - Generate JSON descriptors with all deployment info"
 
 # Ajouter le remote et push
