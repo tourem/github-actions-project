@@ -1,244 +1,313 @@
-# Projet Multi-Modules Maven - Task Management
+# 🚀 GitHub Actions Project - Task Management System
 
 [![CI/CD Pipeline](https://github.com/tourem/github-actions-project/actions/workflows/ci.yml/badge.svg)](https://github.com/tourem/github-actions-project/actions/workflows/ci.yml)
 [![GitHub Packages](https://img.shields.io/badge/GitHub-Packages-blue)](https://github.com/tourem/github-actions-project/packages)
+[![Docker](https://img.shields.io/badge/Docker-GHCR-blue)](https://github.com/tourem/github-actions-project/pkgs/container/github-actions-project)
 
-Projet Maven multi-modules avec Spring Boot 3 et JDK 21, composé de deux modules indépendants :
-- **task-api** : API REST pour la gestion des tâches
-- **task-batch** : Batch planifié qui crée automatiquement des tâches
+Projet Maven multi-modules avec Spring Boot 3 et JDK 21, démontrant les meilleures pratiques de CI/CD avec GitHub Actions.
 
-## Architecture
+---
+
+## 📋 Table des Matières
+
+- [Vue d'ensemble](#-vue-densemble)
+- [Architecture](#-architecture)
+- [Modules](#-modules)
+- [Démarrage Rapide](#-démarrage-rapide)
+- [CI/CD avec GitHub Actions](#-cicd-avec-github-actions)
+- [Scripts Disponibles](#-scripts-disponibles)
+- [Documentation](#-documentation)
+- [Développement](#-développement)
+
+---
+
+## 🎯 Vue d'ensemble
+
+Ce projet est un système de gestion de tâches composé de deux modules indépendants :
+
+- **task-api** : API REST pour la gestion des tâches (Port 8080)
+- **task-batch** : Batch planifié qui crée automatiquement des tâches (Port 8081)
+
+### Technologies
+
+| Composant | Technologie | Version |
+|-----------|-------------|---------|
+| **Langage** | Java | JDK 21 |
+| **Framework** | Spring Boot | 3.2.0 |
+| **Build** | Maven | 3.x |
+| **Base de données** | H2 | In-Memory |
+| **Conteneurisation** | Docker | Latest |
+| **CI/CD** | GitHub Actions | - |
+| **Registry** | GitHub Packages & GHCR | - |
+
+---
+
+## 🏗️ Architecture
 
 ```
 github-actions-project/
-├── pom.xml                    # POM parent
-├── task-api/                  # Module API REST
-│   ├── src/
-│   │   ├── main/
-│   │   │   ├── java/
-│   │   │   ├── resources/
-│   │   │   ├── scripts/       # Scripts de démarrage/arrêt
-│   │   │   └── assembly/      # Configuration assembly
-│   │   └── test/
+├── .github/
+│   └── workflows/
+│       └── ci.yml                    # Workflow CI/CD ultra-simplifié (28 lignes)
+├── scripts/                          # Scripts utilitaires
+│   ├── detect-modules.sh             # Auto-détection des modules déployables
+│   ├── generate-deployment-descriptor.sh  # Génération des descripteurs
+│   ├── deploy-complete-solution.sh   # Déploiement complet
+│   ├── deploy-github-actions-common.sh    # Déploiement workflow partagé
+│   ├── deploy-updated-workflow.sh    # Mise à jour workflow partagé
+│   └── migrate-dockerfile.sh         # Migration Dockerfile
+├── docs/                             # Documentation complète
+│   ├── GITHUB_ACTIONS.md             # Guide GitHub Actions
+│   ├── DEPLOYMENT.md                 # Guide de déploiement
+│   └── DOCKER.md                     # Guide Docker
+├── task-api/                         # Module API REST
+│   ├── src/main/
+│   │   ├── java/                     # Code source
+│   │   ├── resources/                # Configuration
+│   │   ├── scripts/                  # Scripts start/stop
+│   │   ├── assembly/                 # Configuration assembly
+│   │   └── vault/                    # Configuration Vault par environnement
+│   ├── deploy/                       # Descripteurs de déploiement
 │   └── pom.xml
-└── task-batch/                # Module Batch
-    ├── src/
-    │   ├── main/
-    │   │   ├── java/
-    │   │   ├── resources/
-    │   │   ├── scripts/       # Scripts de démarrage/arrêt
-    │   │   └── assembly/      # Configuration assembly
-    │   └── test/
-    └── pom.xml
+├── task-batch/                       # Module Batch
+│   ├── src/main/
+│   │   ├── java/                     # Code source
+│   │   ├── resources/                # Configuration
+│   │   ├── scripts/                  # Scripts start/stop
+│   │   ├── assembly/                 # Configuration assembly
+│   │   └── vault/                    # Configuration Vault par environnement
+│   ├── deploy/                       # Descripteurs de déploiement
+│   └── pom.xml
+├── pom.xml                           # POM parent
+├── clean-packages.sh                 # Nettoyage des packages GitHub
+└── docker-compose.yml                # Orchestration Docker
 ```
 
-## Technologies
+---
 
-- **Java** : JDK 21
-- **Framework** : Spring Boot 3.2.0
-- **Base de données** : H2 (en mémoire)
-- **Build** : Maven 3.x
-- **Packaging** : Maven Assembly Plugin (ZIP)
-
-## Modules
+## 📦 Modules
 
 ### 1. Task API (Port 8080)
 
-API REST exposant 3 endpoints principaux :
+API REST exposant des endpoints pour la gestion des tâches.
 
-#### Endpoints
+#### Endpoints Principaux
 
-**GET /api/tasks**
-- Récupère toutes les tâches
-- Réponse : Liste de tâches au format JSON
+| Méthode | Endpoint | Description |
+|---------|----------|-------------|
+| `GET` | `/api/tasks` | Récupère toutes les tâches |
+| `GET` | `/api/tasks/stats` | Récupère les statistiques |
+| `POST` | `/api/tasks` | Crée une nouvelle tâche |
 
-**GET /api/tasks/stats**
-- Récupère les statistiques des tâches
-- Réponse : Nombre total, pending, completed, in_progress
+#### Exemple d'utilisation
 
-**POST /api/tasks**
-- Crée une nouvelle tâche
-- Body : `{"title": "...", "description": "...", "status": "PENDING"}`
-- Réponse : Tâche créée avec son ID
+```bash
+# Créer une tâche
+curl -X POST http://localhost:8080/api/tasks \
+  -H "Content-Type: application/json" \
+  -d '{"title":"Test","description":"Ma tâche","status":"PENDING"}'
+
+# Récupérer toutes les tâches
+curl http://localhost:8080/api/tasks
+
+# Statistiques
+curl http://localhost:8080/api/tasks/stats
+```
 
 #### Base de données
 - H2 en mémoire : `jdbc:h2:mem:taskdb`
 - Console H2 : http://localhost:8080/h2-console
+
+---
 
 ### 2. Task Batch (Port 8081)
 
 Batch planifié qui s'exécute automatiquement toutes les 30 minutes.
 
 #### Fonctionnalités
-- Planification via expression cron : `0 0/30 * * * ?`
-- Appelle l'endpoint POST de l'API pour créer une tâche
-- Enregistre l'historique des exécutions dans sa propre base H2
+- ⏰ Planification via cron : `0 0/30 * * * ?`
+- 🔄 Appelle l'API pour créer des tâches automatiquement
+- 📊 Enregistre l'historique des exécutions
 
 #### Base de données
 - H2 en mémoire : `jdbc:h2:mem:batchdb`
 - Console H2 : http://localhost:8081/h2-console
 
-## Build et Packaging
+---
 
-### Compiler le projet complet
-
-```bash
-mvn clean package
-```
-
-Cette commande va :
-1. Compiler les deux modules
-2. Créer les JARs exécutables
-3. Générer les archives ZIP de distribution dans `target/` de chaque module
-
-### Compiler un module spécifique
-
-```bash
-# API uniquement
-mvn clean package -pl task-api
-
-# Batch uniquement
-mvn clean package -pl task-batch
-```
-
-### Résultat du build
-
-Après le build, vous trouverez :
-- `task-api/target/task-api-1.0-SNAPSHOT.zip`
-- `task-batch/target/task-batch-1.0-SNAPSHOT.zip`
-
-Chaque ZIP contient :
-```
-module-name/
-├── bin/
-│   ├── start.sh       # Script de démarrage Linux/Mac
-│   ├── stop.sh        # Script d'arrêt Linux/Mac
-│   └── start.bat      # Script de démarrage Windows
-├── lib/
-│   └── module.jar     # JAR exécutable
-├── config/
-│   └── application.yml # Configuration
-├── logs/              # Créé au démarrage
-└── README.md
-```
-
-## Déploiement
-
-### 1. Déployer l'API
-
-```bash
-# Extraire le ZIP
-unzip task-api/target/task-api-1.0-SNAPSHOT.zip
-cd task-api
-
-# Démarrer (Linux/Mac)
-./bin/start.sh
-
-# Démarrer (Windows)
-bin\start.bat
-
-# Arrêter (Linux/Mac)
-./bin/stop.sh
-```
-
-L'API sera accessible sur http://localhost:8080
-
-### 2. Déployer le Batch
-
-**Important** : L'API doit être démarrée avant le batch !
-
-```bash
-# Extraire le ZIP
-unzip task-batch/target/task-batch-1.0-SNAPSHOT.zip
-cd task-batch
-
-# Configurer l'URL de l'API si nécessaire
-# Éditer config/application.yml
-# task.api.base-url: http://localhost:8080
-
-# Démarrer (Linux/Mac)
-./bin/start.sh
-
-# Démarrer (Windows)
-bin\start.bat
-
-# Arrêter (Linux/Mac)
-./bin/stop.sh
-```
-
-Le batch s'exécutera automatiquement toutes les 30 minutes.
-
-## Configuration
-
-### Modifier l'expression cron du batch
-
-Éditez `task-batch/config/application.yml` :
-
-```yaml
-task:
-  batch:
-    cron: "0 0/30 * * * ?"  # Toutes les 30 minutes
-```
-
-Exemples :
-- `0 0/15 * * * ?` - Toutes les 15 minutes
-- `0 0 * * * ?` - Toutes les heures
-- `0 0/2 * * * ?` - Toutes les 2 minutes (pour tests)
-
-### Modifier l'URL de l'API
-
-Éditez `task-batch/config/application.yml` :
-
-```yaml
-task:
-  api:
-    base-url: http://localhost:8080
-```
-
-## Tests
-
-### Tester l'API
-
-```bash
-# Créer une tâche
-curl -X POST http://localhost:8080/api/tasks \
-  -H "Content-Type: application/json" \
-  -d '{"title":"Test","description":"Ma tâche de test","status":"PENDING"}'
-
-# Récupérer toutes les tâches
-curl http://localhost:8080/api/tasks
-
-# Récupérer les statistiques
-curl http://localhost:8080/api/tasks/stats
-```
-
-### Suivre les logs du batch
-
-```bash
-tail -f task-batch/logs/task-batch.log
-```
-
-## Développement
+## 🚀 Démarrage Rapide
 
 ### Prérequis
-- JDK 21
-- Maven 3.x
 
-### Lancer en mode développement
+- **JDK 21** installé
+- **Maven 3.x** installé
+- **Docker** (optionnel, pour conteneurisation)
 
-**Terminal 1 - API:**
+### Option 1 : Build et Exécution Locale
+
 ```bash
+# 1. Cloner le projet
+git clone https://github.com/tourem/github-actions-project.git
+cd github-actions-project
+
+# 2. Compiler le projet
+mvn clean package
+
+# 3. Déployer l'API
+unzip task-api/target/task-api-1.0-SNAPSHOT.zip
 cd task-api
-mvn spring-boot:run
+./bin/start.sh
+
+# 4. Déployer le Batch (dans un autre terminal)
+unzip task-batch/target/task-batch-1.0-SNAPSHOT.zip
+cd task-batch
+./bin/start.sh
 ```
 
-**Terminal 2 - Batch:**
+### Option 2 : Docker Compose
+
 ```bash
+# Démarrer tous les services
+docker-compose up -d
+
+# Voir les logs
+docker-compose logs -f
+
+# Arrêter les services
+docker-compose down
+```
+
+### Option 3 : Mode Développement
+
+```bash
+# Terminal 1 - API
+cd task-api
+mvn spring-boot:run
+
+# Terminal 2 - Batch
 cd task-batch
 mvn spring-boot:run
 ```
 
-### Structure des packages
+---
+
+## 🔄 CI/CD avec GitHub Actions
+
+### Workflow Ultra-Simplifié
+
+Le projet utilise un workflow GitHub Actions **ultra-simplifié** (28 lignes) qui :
+
+✅ Auto-détecte les modules déployables  
+✅ Compile et teste le projet  
+✅ Construit les images Docker  
+✅ Publie vers GitHub Packages (Maven)  
+✅ Publie vers GitHub Container Registry (Docker)  
+✅ Génère les descripteurs de déploiement  
+✅ Gère les pushs concurrents avec retry automatique  
+
+### Configuration Minimale
+
+<augment_code_snippet path=".github/workflows/ci.yml" mode="EXCERPT">
+````yaml
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy'
+        type: choice
+        options: [dev, hml, prd]
+        default: dev
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  build-and-deploy:
+    uses: tourem/github-actions-common/.github/workflows/maven-docker-build.yml@main
+    with:
+      java-version: '21'
+      dockerfile-repo: 'tourem/docker-file-common'
+      environment: ${{ github.event.inputs.environment || 'dev' }}
+    secrets: inherit
+````
+</augment_code_snippet>
+
+### Auto-Détection des Modules Déployables
+
+Le workflow détecte automatiquement les modules déployables selon ces critères :
+
+| Critère | Description |
+|---------|-------------|
+| ✅ **spring-boot-maven-plugin** | Plugin Spring Boot présent dans le POM |
+| ✅ **packaging=war/ear** | Application Java EE |
+| ✅ **src/main/vault/** | Configuration Vault présente |
+
+Les bibliothèques JAR simples sont **automatiquement ignorées**.
+
+### Packages Publiés
+
+#### Maven Packages (GitHub Packages)
+```
+https://maven.pkg.github.com/tourem/github-actions-project
+```
+
+- `com.larbotech:task-api:1.0-SNAPSHOT`
+- `com.larbotech:task-batch:1.0-SNAPSHOT`
+
+#### Docker Images (GHCR)
+```
+ghcr.io/tourem/github-actions-project/task-api:latest
+ghcr.io/tourem/github-actions-project/task-batch:latest
+```
+
+---
+
+## 🛠️ Scripts Disponibles
+
+Tous les scripts sont dans le dossier `scripts/` :
+
+| Script | Description |
+|--------|-------------|
+| `detect-modules.sh` | Auto-détecte les modules Maven déployables |
+| `generate-deployment-descriptor.sh` | Génère les descripteurs de déploiement JSON |
+| `deploy-complete-solution.sh` | Déploie la solution complète GitHub Actions |
+| `deploy-github-actions-common.sh` | Déploie le workflow partagé |
+| `deploy-updated-workflow.sh` | Met à jour le workflow partagé |
+| `migrate-dockerfile.sh` | Migre le Dockerfile vers le repo distant |
+
+### Exemples d'utilisation
+
+```bash
+# Auto-détecter les modules
+./scripts/detect-modules.sh pom.xml dev
+
+# Générer un descripteur de déploiement
+./scripts/generate-deployment-descriptor.sh task-api 1.0-SNAPSHOT dev ghcr.io
+
+# Déployer la solution complète
+./scripts/deploy-complete-solution.sh
+```
+
+---
+
+## 📚 Documentation
+
+Documentation complète disponible dans le dossier `docs/` :
+
+- **[GITHUB_ACTIONS.md](docs/GITHUB_ACTIONS.md)** - Guide complet GitHub Actions
+- **[DEPLOYMENT.md](docs/DEPLOYMENT.md)** - Guide de déploiement
+- **[DOCKER.md](docs/DOCKER.md)** - Guide Docker et conteneurisation
+
+---
+
+## 💻 Développement
+
+### Structure des Packages
 
 **task-api:**
 - `controller` : Contrôleurs REST
@@ -254,75 +323,39 @@ mvn spring-boot:run
 - `dto` : Objets de transfert
 - `config` : Configuration Spring
 
-## Indépendance des modules
+### Compiler un Module Spécifique
 
-Les deux modules sont **totalement indépendants** en termes de déploiement :
-- Chacun a son propre JAR exécutable
-- Chacun a sa propre base de données H2
-- Chacun peut être déployé sur des machines différentes
-- La communication se fait uniquement via HTTP REST
+```bash
+# API uniquement
+mvn clean package -pl task-api
 
-## CI/CD avec GitHub Actions
-
-Le projet utilise GitHub Actions pour l'intégration et le déploiement continus :
-
-### Workflow automatique
-- ✅ Compilation du projet
-- ✅ Exécution des tests
-- ✅ Création des packages (JAR et ZIP)
-- ✅ Publication vers GitHub Packages
-- ✅ Archivage des artifacts
-
-### GitHub Packages
-
-Les artifacts sont publiés automatiquement sur :
-```
-https://maven.pkg.github.com/tourem/github-actions-project
+# Batch uniquement
+mvn clean package -pl task-batch
 ```
 
-**Packages disponibles** :
-- `com.larbotech:task-api:1.0-SNAPSHOT` (JAR)
-- `com.larbotech:task-api:1.0-SNAPSHOT:zip:distribution` (ZIP)
-- `com.larbotech:task-batch:1.0-SNAPSHOT` (JAR)
-- `com.larbotech:task-batch:1.0-SNAPSHOT:zip:distribution` (ZIP)
+### Tests
 
-### Utiliser les packages
+```bash
+# Exécuter tous les tests
+mvn test
 
-Pour utiliser les packages dans un autre projet Maven :
-
-1. **Configurer l'authentification** (`~/.m2/settings.xml`) :
-```xml
-<servers>
-  <server>
-    <id>github</id>
-    <username>VOTRE_USERNAME</username>
-    <password>VOTRE_GITHUB_TOKEN</password>
-  </server>
-</servers>
+# Tests d'un module spécifique
+mvn test -pl task-api
 ```
 
-2. **Ajouter le repository** :
-```xml
-<repositories>
-  <repository>
-    <id>github</id>
-    <url>https://maven.pkg.github.com/tourem/github-actions-project</url>
-  </repository>
-</repositories>
-```
+---
 
-3. **Ajouter la dépendance** :
-```xml
-<dependency>
-  <groupId>com.larbotech</groupId>
-  <artifactId>task-api</artifactId>
-  <version>1.0-SNAPSHOT</version>
-</dependency>
-```
+## 🔗 Liens Utiles
 
-Pour plus de détails, consultez [GITHUB_ACTIONS.md](GITHUB_ACTIONS.md).
+- **Repository** : https://github.com/tourem/github-actions-project
+- **Workflow Partagé** : https://github.com/tourem/github-actions-common
+- **Dockerfile Commun** : https://github.com/tourem/docker-file-common
+- **Actions** : https://github.com/tourem/github-actions-project/actions
+- **Packages** : https://github.com/tourem/github-actions-project/packages
 
-## Licence
+---
 
-Ce projet est un exemple de démonstration.
+## 📝 Licence
+
+Ce projet est un exemple de démonstration des meilleures pratiques CI/CD avec GitHub Actions.
 
