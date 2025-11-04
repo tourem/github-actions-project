@@ -79,18 +79,51 @@ while read -r module; do
     # Extraire l'artifactId du module
     ARTIFACT_ID=$(xmllint --xpath "/*[local-name()='project']/*[local-name()='artifactId']/text()" "$MODULE_POM" 2>/dev/null || echo "$module")
 
-    # Vérifier si le module a des configurations Vault (indique qu'il est déployable)
-    VAULT_DIR="${module}/src/main/vault"
+    # Vérifier si le module est déployable
+    IS_DEPLOYABLE=false
+    REASON=""
 
-    if [ ! -d "$VAULT_DIR" ]; then
-        echo -e "${YELLOW}⚠️  Pas de configuration Vault pour: ${module} (ignoré)${NC}"
+    # Critère 1: Présence du plugin Spring Boot (application Spring Boot)
+    HAS_SPRING_BOOT=$(xmllint --xpath "count(//*[local-name()='plugin']/*[local-name()='artifactId'][text()='spring-boot-maven-plugin'])" "$MODULE_POM" 2>/dev/null || echo "0")
+    if [ "$HAS_SPRING_BOOT" != "0" ]; then
+        IS_DEPLOYABLE=true
+        REASON="spring-boot-maven-plugin"
+    fi
+
+    # Critère 2: Packaging WAR ou EAR (applications Java EE)
+    if [[ "$PACKAGING" == "war" || "$PACKAGING" == "ear" ]]; then
+        IS_DEPLOYABLE=true
+        REASON="${REASON:+${REASON}, }packaging=${PACKAGING}"
+    fi
+
+    # Critère 3: Présence de configurations Vault (indique une application déployable)
+    VAULT_DIR="${module}/src/main/vault"
+    HAS_VAULT=false
+    if [ -d "$VAULT_DIR" ]; then
+        HAS_VAULT=true
+        # Si Vault est présent avec packaging JAR, c'est probablement déployable
+        if [[ "$PACKAGING" == "jar" && "$HAS_SPRING_BOOT" == "0" ]]; then
+            IS_DEPLOYABLE=true
+        fi
+        REASON="${REASON:+${REASON}, }vault-config"
+    fi
+
+    # Si le module n'est pas déployable, l'ignorer
+    if [ "$IS_DEPLOYABLE" = false ]; then
+        echo -e "${YELLOW}⚠️  Module non déployable: ${module} (packaging=${PACKAGING}, pas de critères de déploiement)${NC}"
         continue
+    fi
+
+    # Avertissement si pas de configuration Vault pour un module déployable
+    if [ "$HAS_VAULT" = false ]; then
+        echo -e "${YELLOW}⚠️  Module déployable sans configuration Vault: ${module}${NC}"
     fi
 
     echo -e "${GREEN}✅ Module déployable détecté: ${module}${NC}"
     echo -e "   - ArtifactId: ${ARTIFACT_ID}"
     echo -e "   - Packaging: ${PACKAGING}"
     echo -e "   - GroupId: ${GROUP_ID}"
+    echo -e "   - Critères: ${REASON}"
     echo ""
 
     # Ajouter le module au fichier temporaire
