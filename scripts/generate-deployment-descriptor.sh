@@ -44,23 +44,72 @@ fi
 # Créer le répertoire deploy s'il n'existe pas
 mkdir -p "${DEPLOY_DIR}"
 
+# Fonction pour extraire le groupId avec grep/sed (méthode robuste)
+extract_groupid_with_grep() {
+    local pom_file="$1"
+    local group_id=""
+
+    # Chercher d'abord le groupId direct (hors du bloc parent)
+    # On lit le fichier ligne par ligne et on ignore le bloc parent
+    local in_parent=false
+    while IFS= read -r line; do
+        if [[ "$line" =~ \<parent\> ]]; then
+            in_parent=true
+        elif [[ "$line" =~ \</parent\> ]]; then
+            in_parent=false
+        elif [[ "$line" =~ \<groupId\>(.*)\</groupId\> ]] && [ "$in_parent" = false ]; then
+            group_id="${BASH_REMATCH[1]}"
+            break
+        fi
+    done < "$pom_file"
+
+    # Si pas trouvé, chercher dans le bloc parent
+    if [ -z "$group_id" ]; then
+        group_id=$(sed -n '/<parent>/,/<\/parent>/p' "$pom_file" | grep "<groupId>" | head -1 | sed -E 's/.*<groupId>(.*)<\/groupId>.*/\1/' | tr -d ' \t\n\r')
+    fi
+
+    echo "$group_id"
+}
+
 # Extraire le groupId depuis le pom.xml du module
 echo "🔍 Extraction du groupId depuis ${MODULE_POM}..."
-GROUP_ID=$(xmllint --xpath "string(//*[local-name()='project']/*[local-name()='groupId'])" "${MODULE_POM}" 2>/dev/null || echo "")
 
-# Si le groupId n'est pas trouvé dans le module, chercher dans le parent
-if [ -z "$GROUP_ID" ]; then
-    echo "   GroupId non trouvé dans le module, recherche dans le parent..."
-    GROUP_ID=$(xmllint --xpath "string(//*[local-name()='project']/*[local-name()='parent']/*[local-name()='groupId'])" "${MODULE_POM}" 2>/dev/null || echo "")
+# Essayer d'abord avec xmllint si disponible
+GROUP_ID=""
+if command -v xmllint &> /dev/null; then
+    echo "   Utilisation de xmllint..."
+    GROUP_ID=$(xmllint --xpath "string(//*[local-name()='project']/*[local-name()='groupId'])" "${MODULE_POM}" 2>/dev/null || echo "")
+
+    # Si le groupId n'est pas trouvé dans le module, chercher dans le parent
+    if [ -z "$GROUP_ID" ]; then
+        echo "   GroupId non trouvé dans le module, recherche dans le parent..."
+        GROUP_ID=$(xmllint --xpath "string(//*[local-name()='project']/*[local-name()='parent']/*[local-name()='groupId'])" "${MODULE_POM}" 2>/dev/null || echo "")
+    fi
 fi
 
-# Vérifier que le groupId a été trouvé
+# Si xmllint a échoué ou n'est pas disponible, utiliser grep/sed
+if [ -z "$GROUP_ID" ]; then
+    echo "   Utilisation de grep/sed (fallback)..."
+    GROUP_ID=$(extract_groupid_with_grep "${MODULE_POM}")
+fi
+
+# Nettoyer le groupId (enlever les espaces et retours à la ligne)
+GROUP_ID=$(echo "$GROUP_ID" | tr -d '\n\r\t ' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+
+# Vérifier que le groupId a été trouvé et n'est pas vide
 if [ -z "$GROUP_ID" ]; then
     echo "❌ Erreur: Impossible d'extraire le groupId depuis ${MODULE_POM}"
+    echo ""
+    echo "📄 Contenu du fichier pom.xml:"
+    cat "${MODULE_POM}"
+    echo ""
+    echo "🔍 Debug: Tentative d'extraction manuelle..."
+    echo "   Bloc parent:"
+    sed -n '/<parent>/,/<\/parent>/p' "${MODULE_POM}"
     exit 1
 fi
 
-echo "   GroupId détecté: ${GROUP_ID}"
+echo "   ✅ GroupId détecté: ${GROUP_ID}"
 
 # Fonction pour détecter les profils Spring
 detect_spring_profiles() {
