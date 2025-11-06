@@ -27,8 +27,19 @@ if [ ! -f "$POM_FILE" ]; then
     exit 1
 fi
 
-# Extraire le groupId du parent
-GROUP_ID=$(xmllint --xpath "/*[local-name()='project']/*[local-name()='groupId']/text()" "$POM_FILE" 2>/dev/null || echo "")
+# Extraire le groupId du parent (en ignorant le bloc <parent>)
+GROUP_ID=""
+in_parent=false
+while IFS= read -r line; do
+    if echo "$line" | grep -q "<parent>"; then
+        in_parent=true
+    elif echo "$line" | grep -q "</parent>"; then
+        in_parent=false
+    elif echo "$line" | grep -q "<groupId>.*</groupId>" && [ "$in_parent" = false ]; then
+        GROUP_ID=$(echo "$line" | sed 's/.*<groupId>\([^<]*\)<\/groupId>.*/\1/' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
+        break
+    fi
+done < "$POM_FILE"
 
 if [ -z "$GROUP_ID" ]; then
     echo -e "${RED}❌ Impossible d'extraire le groupId du POM${NC}"
@@ -38,7 +49,7 @@ fi
 echo -e "${GREEN}✅ GroupId détecté: ${GROUP_ID}${NC}"
 
 # Extraire la liste des modules
-MODULES=$(xmllint --xpath "/*[local-name()='project']/*[local-name()='modules']/*[local-name()='module']/text()" "$POM_FILE" 2>/dev/null || echo "")
+MODULES=$(sed -n '/<modules>/,/<\/modules>/p' "$POM_FILE" | grep "<module>" | sed 's/.*<module>\([^<]*\)<\/module>.*/\1/' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
 
 if [ -z "$MODULES" ]; then
     echo -e "${YELLOW}⚠️  Aucun module détecté dans le POM parent${NC}"
@@ -73,18 +84,42 @@ while read -r module; do
         continue
     fi
 
-    # Extraire le packaging du module
-    PACKAGING=$(xmllint --xpath "/*[local-name()='project']/*[local-name()='packaging']/text()" "$MODULE_POM" 2>/dev/null || echo "jar")
+    # Extraire le packaging du module (en ignorant le bloc <parent>)
+    PACKAGING=""
+    in_parent=false
+    while IFS= read -r line; do
+        if echo "$line" | grep -q "<parent>"; then
+            in_parent=true
+        elif echo "$line" | grep -q "</parent>"; then
+            in_parent=false
+        elif echo "$line" | grep -q "<packaging>.*</packaging>" && [ "$in_parent" = false ]; then
+            PACKAGING=$(echo "$line" | sed 's/.*<packaging>\([^<]*\)<\/packaging>.*/\1/' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
+            break
+        fi
+    done < "$MODULE_POM"
+    PACKAGING=${PACKAGING:-jar}
 
-    # Extraire l'artifactId du module
-    ARTIFACT_ID=$(xmllint --xpath "/*[local-name()='project']/*[local-name()='artifactId']/text()" "$MODULE_POM" 2>/dev/null || echo "$module")
+    # Extraire l'artifactId du module (en ignorant le bloc <parent>)
+    ARTIFACT_ID=""
+    in_parent=false
+    while IFS= read -r line; do
+        if echo "$line" | grep -q "<parent>"; then
+            in_parent=true
+        elif echo "$line" | grep -q "</parent>"; then
+            in_parent=false
+        elif echo "$line" | grep -q "<artifactId>.*</artifactId>" && [ "$in_parent" = false ]; then
+            ARTIFACT_ID=$(echo "$line" | sed 's/.*<artifactId>\([^<]*\)<\/artifactId>.*/\1/' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
+            break
+        fi
+    done < "$MODULE_POM"
+    ARTIFACT_ID=${ARTIFACT_ID:-$module}
 
     # Vérifier si le module est déployable
     IS_DEPLOYABLE=false
     REASON=""
 
     # Critère 1: Présence du plugin Spring Boot (application Spring Boot)
-    HAS_SPRING_BOOT=$(xmllint --xpath "count(//*[local-name()='plugin']/*[local-name()='artifactId'][text()='spring-boot-maven-plugin'])" "$MODULE_POM" 2>/dev/null || echo "0")
+    HAS_SPRING_BOOT=$(grep -c "spring-boot-maven-plugin" "$MODULE_POM" 2>/dev/null || echo "0")
     if [ "$HAS_SPRING_BOOT" != "0" ]; then
         IS_DEPLOYABLE=true
         REASON="spring-boot-maven-plugin"

@@ -1,0 +1,326 @@
+name: Maven Docker Build - Reusable Workflow (Multi-Regions)
+
+on:
+  workflow_call:
+    inputs:
+      # Configuration Maven
+      java-version:
+        description: 'Java version (e.g., 17, 21)'
+        required: true
+        type: string
+      
+      maven-version:
+        description: 'Maven version (e.g., 3.9)'
+        required: false
+        type: string
+        default: '3.9'
+      
+      maven-pom:
+        description: 'Path to pom.xml'
+        required: false
+        type: string
+        default: 'pom.xml'
+      
+      # Configuration Dockerfile
+      dockerfile-repo:
+        description: 'Repository containing Dockerfile (e.g., owner/repo)'
+        required: true
+        type: string
+      
+      dockerfile-branch:
+        description: 'Branch of Dockerfile repository'
+        required: false
+        type: string
+        default: 'main'
+      
+      # Configuration Docker Builds
+      docker-modules:
+        description: 'JSON array of modules to build (name, artifact, config). If empty, auto-detect from pom.xml'
+        required: false
+        type: string
+        default: ''
+
+      environment:
+        description: 'Deployment environment (dev, hml, prd) - used for auto-detection'
+        required: false
+        type: string
+        default: 'dev'
+      
+      # Configuration TRI (Multi-Regions)
+      TRI:
+        description: 'Code TRI (3 caractères) - Active le mode multi-régions'
+        required: false
+        type: string
+        default: ''
+      
+      # Options
+      skip-tests:
+        description: 'Skip tests during Maven build'
+        required: false
+        type: boolean
+        default: false
+      
+      docker-registry:
+        description: 'Docker registry URL (default: ghcr.io)'
+        required: false
+        type: string
+        default: ''
+      
+      maven-registry:
+        description: 'Maven registry URL (default: GitHub Packages)'
+        required: false
+        type: string
+        default: ''
+      
+      deployment-descriptors-enabled:
+        description: 'Enable deployment descriptors generation'
+        required: false
+        type: boolean
+        default: true
+      
+      deployment-environment:
+        description: 'Environment for deployment descriptors (dev, hml, prd)'
+        required: false
+        type: string
+        default: 'dev'
+
+jobs:
+  # ============================================================================
+  # JOB 1: Parse TRI Configuration (si TRI fourni)
+  # ============================================================================
+  parse-tri:
+    name: Parse TRI Configuration
+    runs-on: ubuntu-latest
+    if: ${{ inputs.TRI != '' }}
+    
+    outputs:
+      IRT: ${{ steps.parse-json.outputs.IRT }}
+      regions: ${{ steps.parse-json.outputs.regions }}
+      region-list: ${{ steps.parse-regions.outputs.list }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Parse TRI.json
+        id: parse-json
+        run: |
+          TRI_FILE="${{ inputs.TRI }}.json"
+          
+          echo "🔍 Recherche du fichier: $TRI_FILE"
+          
+          if [ ! -f "$TRI_FILE" ]; then
+            echo "❌ Fichier $TRI_FILE non trouvé"
+            exit 1
+          fi
+          
+          # Parser le fichier JSON
+          IRT=$(jq -r '.IRT' "$TRI_FILE")
+          REGIONS=$(jq -r '.regions' "$TRI_FILE")
+          
+          # Valider les données
+          if [ -z "$IRT" ] || [ "$IRT" = "null" ]; then
+            echo "❌ IRT non trouvé dans $TRI_FILE"
+            exit 1
+          fi
+          
+          if [ -z "$REGIONS" ] || [ "$REGIONS" = "null" ]; then
+            echo "❌ regions non trouvé dans $TRI_FILE"
+            exit 1
+          fi
+          
+          echo "IRT=$IRT" >> $GITHUB_OUTPUT
+          echo "regions=$REGIONS" >> $GITHUB_OUTPUT
+          
+          echo "✅ IRT: $IRT"
+          echo "✅ Regions: $REGIONS"
+      
+      - name: Parse regions list
+        id: parse-regions
+        run: |
+          REGIONS="${{ steps.parse-json.outputs.regions }}"
+          
+          echo "🔍 Parsing regions: $REGIONS"
+          
+          # Convertir "paris;lille" en JSON array ["paris", "lille"]
+          # ou "paris" en ["paris"]
+          if [[ "$REGIONS" == *";"* ]]; then
+            # Plusieurs régions
+            IFS=';' read -ra REGION_ARRAY <<< "$REGIONS"
+            JSON_ARRAY=$(printf '%s\n' "${REGION_ARRAY[@]}" | jq -R . | jq -s .)
+            echo "✅ Multi-régions détectées: ${#REGION_ARRAY[@]} régions"
+          else
+            # Une seule région
+            JSON_ARRAY="[\"$REGIONS\"]"
+            echo "✅ Région unique détectée"
+          fi
+          
+          echo "list=$JSON_ARRAY" >> $GITHUB_OUTPUT
+          echo "📋 Region list JSON: $JSON_ARRAY"
+
+  # ============================================================================
+  # JOB 2: Auto-detect Modules (inchangé, mais avec dépendance conditionnelle)
+  # ============================================================================
+  detect-modules:
+    name: Auto-detect Deployable Modules
+    needs: [parse-tri]
+    if: |
+      always() &&
+      (needs.parse-tri.result == 'success' || needs.parse-tri.result == 'skipped')
+    runs-on: ubuntu-latest
+    
+    outputs:
+      modules: ${{ steps.output.outputs.modules }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install xmllint
+        run: sudo apt-get update && sudo apt-get install -y libxml2-utils jq
+
+      - name: Checkout scripts from github-actions-common
+        uses: actions/checkout@v4
+        with:
+          repository: tourem/github-actions-common
+          ref: main
+          path: .github-actions-common
+
+      - name: Auto-detect modules
+        id: detect
+        run: |
+          # Copier le script de détection
+          cp .github-actions-common/scripts/detect-modules.sh ./detect-modules.sh
+          chmod +x ./detect-modules.sh
+
+          # Exécuter la détection
+          ./detect-modules.sh pom.xml "${{ inputs.environment }}"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Output modules configuration
+        id: output
+        run: |
+          if [ -n "${{ inputs.docker-modules }}" ]; then
+            echo "Using provided modules configuration"
+            echo "modules=${{ inputs.docker-modules }}" >> $GITHUB_OUTPUT
+          else
+            echo "Using auto-detected modules configuration"
+            echo "modules=${{ steps.detect.outputs.modules }}" >> $GITHUB_OUTPUT
+          fi
+
+  # ============================================================================
+  # JOB 3: Build and Publish Maven (inchangé)
+  # ============================================================================
+  build-and-publish:
+    name: Build and Publish Maven Artifacts
+    needs: detect-modules
+    runs-on: ubuntu-latest
+
+    outputs:
+      version: ${{ steps.get-version.outputs.version }}
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ inputs.java-version }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ inputs.java-version }}
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Get Maven version
+        id: get-version
+        run: |
+          VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout -f ${{ inputs.maven-pom }})
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "📦 Maven version: $VERSION"
+
+      - name: Build with Maven
+        run: |
+          if [ "${{ inputs.skip-tests }}" == "true" ]; then
+            mvn -B clean package -DskipTests -f ${{ inputs.maven-pom }}
+          else
+            mvn -B clean package -f ${{ inputs.maven-pom }}
+          fi
+
+      - name: Checkout github-actions-common for settings.xml
+        uses: actions/checkout@v4
+        with:
+          repository: tourem/github-actions-common
+          ref: main
+          path: .github-actions-common
+
+      - name: Setup Maven settings
+        run: |
+          mkdir -p ~/.m2
+          cp .github-actions-common/settings.xml ~/.m2/settings.xml
+        env:
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish to Maven registry
+        run: |
+          mvn -B deploy -DskipTests -f ${{ inputs.maven-pom }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ============================================================================
+  # JOB 4: Build Docker Images (MODIFIÉ pour multi-régions)
+  # ============================================================================
+  build-docker-images:
+    name: Build Docker Images
+    needs: [detect-modules, build-and-publish, parse-tri]
+    if: |
+      always() && 
+      needs.detect-modules.result == 'success' && 
+      needs.build-and-publish.result == 'success' &&
+      (needs.parse-tri.result == 'success' || needs.parse-tri.result == 'skipped')
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write
+
+    strategy:
+      matrix:
+        module: ${{ fromJson(needs.detect-modules.outputs.modules) }}
+        # Si TRI fourni: utiliser la liste des régions, sinon ["default"]
+        region: ${{ inputs.TRI != '' && fromJson(needs.parse-tri.outputs.region-list) || fromJson('["default"]') }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Checkout Dockerfile repository
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.dockerfile-repo }}
+          ref: ${{ inputs.dockerfile-branch }}
+          path: dockerfile-repo
+
+      - name: Display configuration
+        run: |
+          echo "📦 Module: ${{ matrix.module.name }}"
+          echo "📦 Artifact: ${{ matrix.module.artifact }}"
+          echo "📦 Config: ${{ matrix.module.config }}"
+          echo "📦 Dockerfile repo: ${{ inputs.dockerfile-repo }}@${{ inputs.dockerfile-branch }}"
+          echo "📦 Version: ${{ needs.build-and-publish.outputs.version }}"
+          echo "🌍 Region: ${{ matrix.region }}"
+          if [ "${{ inputs.TRI }}" != "" ]; then
+            echo "🏷️  TRI: ${{ inputs.TRI }}"
+            echo "🏷️  IRT: ${{ needs.parse-tri.outputs.IRT }}"
+            echo "🏷️  Mode: Multi-régions"
+          else
+            echo "🏷️  Mode: Standard (GHCR)"
+          fi
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
